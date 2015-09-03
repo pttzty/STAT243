@@ -9,3 +9,5 @@ git mv -k UNdata_Export_20150902_062742765.csv data.csv
 grep "+" data.csv > regions.csv
 grep -v "+" data.csv > countries.csv
 
+##Aviod the comma in the countries names, 
+sed "s/, /-/g" countries.csv > countries_aprictos.csv
