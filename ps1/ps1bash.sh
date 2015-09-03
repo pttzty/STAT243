@@ -11,3 +11,6 @@ grep -v "+" data.csv > countries.csv
 
 ##Aviod the comma in the countries names, 
 sed "s/, /-/g" countries.csv > countries_aprictos.csv
+
+## 
+grep -i "Area" countries_aprictos.csv | grep 2005 | less
