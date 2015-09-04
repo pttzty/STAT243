@@ -13,4 +13,4 @@ grep -v "+" data.csv > countries.csv
 sed "s/, /-/g" countries.csv > countries_aprictos.csv
 
 ## 
-grep -i "Area" countries_aprictos.csv | grep 2005 | less
+grep -i "Area" countries_aprictos.csv | grep "\"2005\""
