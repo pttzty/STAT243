@@ -12,7 +12,14 @@ grep -v "+" data.csv > countries.csv
 ##Aviod the comma in the countries names, 
 sed "s/, /-/g" countries.csv > countries_aprictos.csv
 
-## 
+## Find five most land-used countries in 2005
 grep -i "Area" countries_aprictos.csv | grep "\"2005\"" | sed 's/"//g' | sort -t',' -k6 -n | tail -5
 
-
+## Automate the analysis for other years
+function automate(){
+for ((i=1965;i<=2015;i=i+5))
+do
+    grep -i "Area" countries_aprictos.csv | grep "\"echo $i\"" | sed 's/"//g' | sort -t',' -k6 -n | tail -5 > file$i.txt
+done
+}
+automate(5)
