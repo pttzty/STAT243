@@ -13,4 +13,6 @@ grep -v "+" data.csv > countries.csv
 sed "s/, /-/g" countries.csv > countries_aprictos.csv
 
 ## 
-grep -i "Area" countries_aprictos.csv | grep "\"2005\""
+grep -i "Area" countries_aprictos.csv | grep "\"2005\"" | sed 's/"//g' | sort -t',' -k6 -n | tail -5
+
+
