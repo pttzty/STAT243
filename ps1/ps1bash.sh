@@ -28,7 +28,7 @@ automate
 function httpcode(){
 	echo -n "what is your code for the Agriculture Product?" 
 	read x
-	wget --output-document data$x.zip "http://data.un.org/Handlers/DownloadHandler.ashx?DataFilter=itemCode:$x&DataMartId=FAO&Format=csv&c=2,3,4,5,6,7&s=countryName:asc,elementCode:asc,year:desc" | unzip 
+	wget --output-document data$x.zip "http://data.un.org/Handlers/DownloadHandler.ashx?DataFilter=itemCode:$x&DataMartId=FAO&Format=csv&c=2,3,4,5,6,7&s=countryName:asc,elementCode:asc,year:desc" 
 	unzip -c data$x.zip | less 
 }
 ##Call the function
@@ -43,3 +43,6 @@ wget --output-document codename.html "http://faostat.fao.org/site/384/default.as
 #First to download the html file, and find all txt file names from that html file.
 wget --output-document climate.html "http://www1.ncdc.noaa.gov/pub/data/ghcn/daily/" 
 
+##Get the name of txt files, 1.find the rough area with files; 2. Get only txt files; 3. Eliminate quotation marks; 4. Eliminate href=
+filenames=grep -o -E 'href="([^"#]+)"' climate.html| grep "txt" |  sed 's/\"//g' | sed 's/href=//g'
+while p in filenames
