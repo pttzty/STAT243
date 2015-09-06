@@ -40,9 +40,15 @@ wget --output-document codename.html "http://faostat.fao.org/site/384/default.as
 #
 
 ##Problem2
-#First to download the html file, and find all txt file names from that html file.
+#First to download the html file, and name it climate.html
 wget --output-document climate.html "http://www1.ncdc.noaa.gov/pub/data/ghcn/daily/" 
 
 ##Get the name of txt files, 1.find the rough area with files; 2. Get only txt files; 3. Eliminate quotation marks; 4. Eliminate href=
-filenames=grep -o -E 'href="([^"#]+)"' climate.html| grep "txt" |  sed 's/\"//g' | sed 's/href=//g'
-while p in filenames
+txtnames=$(grep -o -E 'href="([^"#]+)"' climate.html| grep "txt" |  sed 's/\"//g' | sed 's/href=//g')
+
+for i in $txtnames;
+do 
+	wget "http://www1.ncdc.noaa.gov/pub/data/ghcn/daily/$i"
+	printf "You are downloading the text file $i"
+done
+
