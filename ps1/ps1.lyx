@@ -65,6 +65,7 @@ knitr
 \papercolumns 1
 \papersides 1
 \paperpagestyle default
+\listings_params "language=bash"
 \tracking_changes false
 \output_changes false
 \html_math_output 0
@@ -75,11 +76,134 @@ knitr
 \begin_body
 
 \begin_layout Title
-Problem 3
+Homework1
 \end_layout
 
 \begin_layout Author
 Tianyi Zhang
+\end_layout
+
+\begin_layout Subsection*
+Problem1
+\end_layout
+
+\begin_layout Subsubsection*
+a
+\end_layout
+
+\begin_layout Standard
+First we need to download the zip file to local directory using wget, and
+ name it to be data.zip.
+ Next, uncompress the file and name the dataset to be data.csv.
+\end_layout
+
+\begin_layout Standard
+\begin_inset listings
+inline false
+status open
+
+\begin_layout Plain Layout
+
+ wget --output-document data.zip "http://data.un.org/Handlers/DownloadHandler.ashx?D
+ataFilter=itemCode:526&DataMartId=FAO&Format=csv&c=2,3,4,5,6,7&s=countryName:asc
+,elementCode:asc,year:desc"
+\end_layout
+
+\begin_layout Plain Layout
+
+       unzip data.zip
+\end_layout
+
+\begin_layout Plain Layout
+
+       mv UNdata_Export_20150902_062742765.csv data.csv
+\end_layout
+
+\end_inset
+
+Now using the command grep to split the data of regions and countries to
+ two files, and also fix the comma problem in countries.
+ I subsititute comma space to -.
+ E.g.
+ China, Mainland becomes China-Mainland, and this step helps me in future
+ steps while making comma to be the delimiter.
+\end_layout
+
+\begin_layout Standard
+\begin_inset listings
+inline false
+status open
+
+\begin_layout Plain Layout
+
+    grep "+" data.csv > regions.csv
+\end_layout
+
+\begin_layout Plain Layout
+
+	grep -v "+" data.csv > countries.csv
+\end_layout
+
+\begin_layout Plain Layout
+
+	sed "s/, /-/g" countries.csv > countries_aprictos.csv   
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Now we are determining the five most land used countries in 2005, first
+ use 
+\begin_inset Quotes eld
+\end_inset
+
+grep
+\begin_inset Quotes erd
+\end_inset
+
+ to find only the rows for Area Harvested in 2005, then we use sed to replace
+ 
+\begin_inset Quotes eld
+\end_inset
+
+ 
+\begin_inset Quotes eld
+\end_inset
+
+ to nothing, which makes the numerical values evaluable in sort.
+ Finally we sort the dataset and find the top 5 countires by the head command.
+ 
+\end_layout
+
+\begin_layout Standard
+The top 5 countries are Turkey, Iran, Pakistan, Uzbekistan, and Algeria.
+\end_layout
+
+\begin_layout Standard
+\begin_inset listings
+inline false
+status open
+
+\begin_layout Plain Layout
+
+grep -i "Area" countries_aprictos.csv | grep "
+\backslash
+"2005
+\backslash
+"" | sed 's/"//g' | sort -t',' -k6 -n -r| head -5 | cut -d',' -k1,6 
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Now we automate the analysis by writing a function called automate and set
+ up a for loop, the i represents the year index.
 \end_layout
 
 \begin_layout Standard

@@ -4,7 +4,7 @@
 wget --output-document data.zip "http://data.un.org/Handlers/DownloadHandler.ashx?DataFilter=itemCode:526&DataMartId=FAO&Format=csv&c=2,3,4,5,6,7&s=countryName:asc,elementCode:asc,year:desc"
 ##uncompress the file 
 unzip data.zip
-git mv -k UNdata_Export_20150902_062742765.csv data.csv
+mv UNdata_Export_20150902_062742765.csv data.csv
 ##Countries into one file, world to the other.
 grep "+" data.csv > regions.csv
 grep -v "+" data.csv > countries.csv
@@ -13,13 +13,15 @@ grep -v "+" data.csv > countries.csv
 sed "s/, /-/g" countries.csv > countries_aprictos.csv
 
 ## Find five most land-used countries in 2005
-grep -i "Area" countries_aprictos.csv | grep "\"2005\"" | sed 's/"//g' | sort -t',' -k6 -n -r| head -5
+grep -i "Area" countries_aprictos.csv | grep "\"2005\"" | sed 's/"//g' | sort -t',' -k6 -n -r| head -5 | cut -d"," -f1,6
 
 ## Automate the analysis for other years, the default interval of years is 10.
 function automate(){
-for ((i=1965;i<=2015;i=i+10))
+for ((i=1965;i<=2005;i=i+10))
 do
-    grep -i "Area" countries_aprictos.csv | grep "\"$i\"" | sed 's/"//g' | sort -t',' -k6 -n -r | head -5
+	printf "This is the rank for year $i \n"
+    grep -i "Area" countries_aprictos.csv | grep "\"$i\"" | sed 's/"//g' | sort -t',' -k6 -n -r | head -5 | cut -d"," -f1,6
+    printf "\n"
 done
 }
 automate
@@ -37,6 +39,7 @@ httpcode
 ##Part C Input the product name instead of inputing the product code.
 #Download the html file
 wget --output-document codename.html "http://faostat.fao.org/site/384/default.aspx"
+sed 's/<[./]*t[rd]>/-/g' codename.html | awk 'NF' | cut -d"-"
 #
 
 ##Problem2
@@ -49,6 +52,7 @@ txtnames=$(grep -o -E 'href="([^"#]+)"' climate.html| grep "txt" |  sed 's/\"//g
 for i in $txtnames;
 do 
 	wget "http://www1.ncdc.noaa.gov/pub/data/ghcn/daily/$i"
-	printf "You are downloading the text file $i"
+	printf "\n You are downloading the text file $i"
 done
+
 
