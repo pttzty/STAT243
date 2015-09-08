@@ -3,8 +3,7 @@
 ##Download the compressed data file to the local directory
 wget --output-document data.zip "http://data.un.org/Handlers/DownloadHandler.ashx?DataFilter=itemCode:526&DataMartId=FAO&Format=csv&c=2,3,4,5,6,7&s=countryName:asc,elementCode:asc,year:desc"
 ##uncompress the file 
-unzip data.zip
-mv UNdata_Export_20150902_062742765.csv data.csv
+unzip -c data.zip > data.csv
 ##Countries into one file, world to the other.
 grep "+" data.csv > regions.csv
 grep -v "+" data.csv > countries.csv
@@ -33,26 +32,31 @@ function httpcode(){
 	wget --output-document data$x.zip "http://data.un.org/Handlers/DownloadHandler.ashx?DataFilter=itemCode:$x&DataMartId=FAO&Format=csv&c=2,3,4,5,6,7&s=countryName:asc,elementCode:asc,year:desc" 
 	unzip -c data$x.zip | less 
 }
-##Call the function
 httpcode
 
 ##Part C Input the product name instead of inputing the product code.
 #Download the html file
 wget --output-document codename.html "http://faostat.fao.org/site/384/default.aspx"
-sed 's/<[./]*t[rd]>/-/g' codename.html | awk 'NF' | cut -d"-"
-#
+grep "</td><td>" codename.html | sed 's/td//g' | sed -e 's/<.><>/-/g' | cut -d'-' -f2,4 | sort -u -t'-' > codename.csv
+function nametocode(){
+	x=$(grep $1 codename.csv | cut -d'-' -f1)
+	wget --output-document data$x.zip "http://data.un.org/Handlers/DownloadHandler.ashx?DataFilter=itemCode:$x&DataMartId=FAO&Format=csv&c=2,3,4,5,6,7&s=countryName:asc,elementCode:asc,year:desc" 
+	unzip -c data$x.zip | less
+}
+
+nametocode Wheat
 
 ##Problem2
 #First to download the html file, and name it climate.html
 wget --output-document climate.html "http://www1.ncdc.noaa.gov/pub/data/ghcn/daily/" 
 
-##Get the name of txt files, 1.find the rough area with files; 2. Get only txt files; 3. Eliminate quotation marks; 4. Eliminate href=
-txtnames=$(grep -o -E 'href="([^"#]+)"' climate.html| grep "txt" |  sed 's/\"//g' | sed 's/href=//g')
+##Get the name of txt files
+txtnames=$(grep .txt climate.html | sed 's/.*href="//g' | sed 's/txt">.*/txt/g')
 
 for i in $txtnames;
 do 
+	printf "\n You are downloading the text file $i \n"
 	wget "http://www1.ncdc.noaa.gov/pub/data/ghcn/daily/$i"
-	printf "\n You are downloading the text file $i"
 done
 
 

@@ -65,7 +65,7 @@ knitr
 \papercolumns 1
 \papersides 1
 \paperpagestyle default
-\listings_params "language=bash"
+\listings_params "language=bash,breaklines=true"
 \tracking_changes false
 \output_changes false
 \html_math_output 0
@@ -102,17 +102,34 @@ Code:
 \end_layout
 
 \begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Plain Layout
+
+<<download,engine='bash'>>=
+\end_layout
+
+\begin_layout Plain Layout
+
 wget --output-document data.zip "http://data.un.org/Handlers/DownloadHandler.ashx?Da
 taFilter=itemCode:526&DataMartId=FAO&Format=csv&c=2,3,4,5,6,7&s=countryName:asc,
 elementCode:asc,year:desc"
 \end_layout
 
-\begin_layout Standard
-unzip data.zip
+\begin_layout Plain Layout
+
+unzip -c data.zip > data.csv
 \end_layout
 
-\begin_layout Standard
-mv UNdata_Export_20150902_062742765.csv data.csv
+\begin_layout Plain Layout
+
+@
+\end_layout
+
+\end_inset
+
+
 \end_layout
 
 \begin_layout Standard
@@ -125,23 +142,32 @@ Now using the command grep to split the data of regions and countries to
 \end_layout
 
 \begin_layout Standard
-\begin_inset listings
-inline false
+\begin_inset ERT
 status open
 
 \begin_layout Plain Layout
 
-    grep "+" data.csv > regions.csv
+<<regcou,engine='bash'>>=
 \end_layout
 
 \begin_layout Plain Layout
 
-	grep -v "+" data.csv > countries.csv
+grep "+" data.csv > regions.csv
 \end_layout
 
 \begin_layout Plain Layout
 
-	sed "s/, /-/g" countries.csv > countries_aprictos.csv   
+grep -v "+" data.csv > countries.csv
+\end_layout
+
+\begin_layout Plain Layout
+
+sed "s/, /-/g" countries.csv > countries_aprictos.csv  
+\end_layout
+
+\begin_layout Plain Layout
+
+@
 \end_layout
 
 \end_inset
@@ -169,8 +195,9 @@ grep
 \end_inset
 
  to nothing, which makes the numerical values evaluable in sort.
- Finally we sort the dataset and find the top 5 countires by the head command.
- 
+ Finally we sort the dataset and find the top 5 countires by the head command,
+ and cut out the first and sixth columns so that it only displays the country
+ name and the land use data.
 \end_layout
 
 \begin_layout Standard
@@ -182,27 +209,52 @@ Code:
 \end_layout
 
 \begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Plain Layout
+
+<<top5,engine='bash'>>=
+\end_layout
+
+\begin_layout Plain Layout
+
 grep -i "Area" countries_aprictos.csv | grep "
 \backslash
 "2005
 \backslash
-"" | sed 's/"//g' | sort -t',' -k6 -n -r| head -5 | cut -d',' -k1,6 
+"" | sed 's/"//g' | sort -t',' -k6 -n -r| head -5 | cut -d"," -f1,6
+\end_layout
+
+\begin_layout Plain Layout
+
+@
+\end_layout
+
+\end_inset
+
+
 \end_layout
 
 \begin_layout Standard
 Now we automate the analysis by writing a function called automate and set
  up a for loop, the i represents the year index.
  I also print the message to make the result looks nicer.
+ The default interval of year change is 10 years in this function.
 \end_layout
 
 \begin_layout Standard
-\begin_inset listings
-inline false
+\begin_inset ERT
 status open
 
 \begin_layout Plain Layout
 
-function automate(){ 
+<<automate,engine='bash'>>=
+\end_layout
+
+\begin_layout Plain Layout
+
+function automate(){
 \end_layout
 
 \begin_layout Plain Layout
@@ -212,28 +264,29 @@ for ((i=1965;i<=2005;i=i+10))
 
 \begin_layout Plain Layout
 
-do 
+do 	
 \end_layout
 
 \begin_layout Plain Layout
 
-	printf "This is the rank for year $i 
+printf "This is the rank for year $i 
 \backslash
-n"
+n"     
 \end_layout
 
 \begin_layout Plain Layout
 
-	grep -i "Area" countries_aprictos.csv | grep "
+grep -i "Area" countries_aprictos.csv | grep "
 \backslash
 "$i
 \backslash
-"" | sed 's/"//g' | sort -t',' -k6 -n -r | head -5 | cut -d"," -f1,6
+"" | sed 's/"//g' | sort -t',' -k6 -n -r | head -5 | cut -d"," -f1,6   
+  
 \end_layout
 
 \begin_layout Plain Layout
 
-	printf "
+printf "
 \backslash
 n" 
 \end_layout
@@ -245,17 +298,368 @@ done
 
 \begin_layout Plain Layout
 
-} 
+}
 \end_layout
 
 \begin_layout Plain Layout
 
-automate 
+automate
+\end_layout
+
+\begin_layout Plain Layout
+
+@
 \end_layout
 
 \end_inset
 
 
+\end_layout
+
+\begin_layout Subsection*
+b 
+\end_layout
+
+\begin_layout Standard
+I write a function that takes numerical value of the code as an input, and
+ read user's input to be the variable x by the 
+\begin_inset Quotes eld
+\end_inset
+
+read
+\begin_inset Quotes erd
+\end_inset
+
+ command, then I subsititute the 526 to $x in the http URL.
+ Finally unzip the downloaded file and use the less statement to preview
+ the csv in the compressed file.
+ The output has a preview of CSV file, while requiring a user input, which
+ is relatively long, so I disable the output for this part.
+\end_layout
+
+\begin_layout Standard
+Code:
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Plain Layout
+
+<<inputcode,engine='bash',eval=FALSE>>=
+\end_layout
+
+\begin_layout Plain Layout
+
+function httpcode(){ 	
+\end_layout
+
+\begin_layout Plain Layout
+
+echo -n "what is your code for the Agriculture Product?"  	
+\end_layout
+
+\begin_layout Plain Layout
+
+read x 	
+\end_layout
+
+\begin_layout Plain Layout
+
+wget --output-document data$x.zip "http://data.un.org/Handlers/DownloadHandler.ashx?
+DataFilter=itemCode:$x&DataMartId=FAO&Format=csv&c=2,3,4,5,6,7&s=countryName:asc
+,elementCode:asc,year:desc"  	
+\end_layout
+
+\begin_layout Plain Layout
+
+unzip -c data$x.zip | less  
+\end_layout
+
+\begin_layout Plain Layout
+
+}
+\end_layout
+
+\begin_layout Plain Layout
+
+@
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Subsection*
+c
+\end_layout
+
+\begin_layout Standard
+I opened the item code page 
+\begin_inset Quotes eld
+\end_inset
+
+http://faostat.fao.org/site/384/default.aspx
+\begin_inset Quotes erd
+\end_inset
+
+, and oberseved that the pattern <
+\backslash
+td><td> only exits in the table rows.
+ First I downloaded the the html file, and greped the lines with <
+\backslash
+td><td>, then I used the sed command to replace those <.>s to be 
+\begin_inset Quotes eld
+\end_inset
+
+-
+\begin_inset Quotes erd
+\end_inset
+
+ to be my future delimiters.
+ Then I cut out the second and the fourth column respect to code and product
+ names.
+ Then I use sort -u to avoid repeated names, and finally I named this output
+ to be codename.csv.
+ For these steps, I just extracted a table from an html file.
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Plain Layout
+
+<<codename,engine='bash'>>=
+\end_layout
+
+\begin_layout Plain Layout
+
+wget --output-document codename.html "http://faostat.fao.org/site/384/default.aspx"
+ 
+\end_layout
+
+\begin_layout Plain Layout
+
+grep "</td><td>" codename.html | sed 's/td//g' | sed -e 's/<.><>/-/g' | cut
+ -d'-' -f2,4 | sort -u -t'-' > codename.csv
+\end_layout
+
+\begin_layout Plain Layout
+
+@
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Then I worte a function called name to code, which refined the function
+ I wrote in part B.
+ First define a variable x to take the input of product names, and referring
+ to the first column-which was the code of the product.
+ Then the rest of the function was just the same as I did in part b.
+ I previewed the first ten lines of the product 
+\begin_inset Quotes eld
+\end_inset
+
+wheat
+\begin_inset Quotes erd
+\end_inset
+
+, which corresponed to the code 
+\begin_inset Quotes eld
+\end_inset
+
+15
+\begin_inset Quotes erd
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Standard
+Code:
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Plain Layout
+
+<<nametocode,engine='bash'>>=
+\end_layout
+
+\begin_layout Plain Layout
+
+function nametocode(){ 	
+\end_layout
+
+\begin_layout Plain Layout
+
+x=$(grep $1 codename.csv | cut -d'-' -f1) 	
+\end_layout
+
+\begin_layout Plain Layout
+
+wget --output-document data$x.zip "http://data.un.org/Handlers/DownloadHandler.ashx?
+DataFilter=itemCode:$x&DataMartId=FAO&Format=csv&c=2,3,4,5,6,7&s=countryName:asc
+,elementCode:asc,year:desc"  	
+\end_layout
+
+\begin_layout Plain Layout
+
+unzip -c data$x.zip > data$x.csv
+\end_layout
+
+\begin_layout Plain Layout
+
+head -10 data$x.csv
+\end_layout
+
+\begin_layout Plain Layout
+
+}
+\end_layout
+
+\begin_layout Plain Layout
+
+nametocode Wheat 
+\end_layout
+
+\begin_layout Plain Layout
+
+@
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Plain Layout
+
+
+\backslash
+pagebreak
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Subsection*
+Problem 2
+\end_layout
+
+\begin_layout Standard
+First I download the html file and name it to be climate.html, then we extract
+ the txt files names to a variable called txtnames.
+ First we grep the lines containing .txt, then I eliminate all expressions
+ before href=
+\begin_inset Quotes erd
+\end_inset
+
+ by sed command.
+ Finally I replace all codes after txt'> to be txt, the I got a list of
+ txt file names.
+ Then I use the command printf to show the status message indicating which
+ file is being downloaded.
+ Again the output contains the downloading status, so I disable the output
+ function.
+\end_layout
+
+\begin_layout Standard
+Code
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Plain Layout
+
+<<txtfiles,engine='bash',eval=FALSE>>=
+\end_layout
+
+\begin_layout Plain Layout
+
+wget --output-document climate.html "http://www1.ncdc.noaa.gov/pub/data/ghcn/daily/"
+ 
+\end_layout
+
+\begin_layout Plain Layout
+
+txtnames=$(grep .txt climate.html | sed 's/.*href="//g' | sed 's/txt">.*/txt/g')
+\end_layout
+
+\begin_layout Plain Layout
+
+for i in $txtnames;
+\end_layout
+
+\begin_layout Plain Layout
+
+do  
+\end_layout
+
+\begin_layout Plain Layout
+
+	printf "
+\backslash
+n You are downloading the text file $i 
+\backslash
+n" 	
+\end_layout
+
+\begin_layout Plain Layout
+
+	wget "http://www1.ncdc.noaa.gov/pub/data/ghcn/daily/$i" 	
+\end_layout
+
+\begin_layout Plain Layout
+
+done
+\end_layout
+
+\begin_layout Plain Layout
+
+@
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout LyX-Code
+\begin_inset ERT
+status open
+
+\begin_layout Plain Layout
+
+
+\backslash
+pagebreak
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Subsection*
+Problem3
 \end_layout
 
 \begin_layout Standard
