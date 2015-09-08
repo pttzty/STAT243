@@ -185,8 +185,30 @@ grep
 \begin_inset Quotes erd
 \end_inset
 
- to find only the rows for Area Harvested in 2005, then we use sed to replace
- 
+ to find only the rows for Area Harvested in 2005.
+ We cannot directly grep 2005 because 2005 could be the area used quantity
+ of some countries, so I use 
+\begin_inset Quotes eld
+\end_inset
+
+
+\backslash
+
+\begin_inset Quotes erd
+\end_inset
+
+2005
+\begin_inset Quotes erd
+\end_inset
+
+
+\backslash
+
+\begin_inset Quotes erd
+\end_inset
+
+.
+ Then we use sed to replace 
 \begin_inset Quotes eld
 \end_inset
 
@@ -347,7 +369,7 @@ status open
 
 \begin_layout Plain Layout
 
-<<inputcode,engine='bash',eval=FALSE>>=
+<<inputcode,engine='bash'>>=
 \end_layout
 
 \begin_layout Plain Layout
@@ -374,7 +396,12 @@ DataFilter=itemCode:$x&DataMartId=FAO&Format=csv&c=2,3,4,5,6,7&s=countryName:asc
 
 \begin_layout Plain Layout
 
-unzip -c data$x.zip | less  
+unzip -c data$x.zip > data$x.csv
+\end_layout
+
+\begin_layout Plain Layout
+
+head -10 data$x.csv 
 \end_layout
 
 \begin_layout Plain Layout
@@ -461,7 +488,33 @@ grep "</td><td>" codename.html | sed 's/td//g' | sed -e 's/<.><>/-/g' | cut
 Then I worte a function called name to code, which refined the function
  I wrote in part B.
  First define a variable x to take the input of product names, and referring
- to the first column-which was the code of the product.
+ to the first column-which was the code of the product, and I need to have
+ a dollar sign after $1 so that it will strictly find the name.
+ For instance, when we search 
+\begin_inset Quotes eld
+\end_inset
+
+Cherries
+\begin_inset Quotes erd
+\end_inset
+
+, it will return 
+\begin_inset Quotes eld
+\end_inset
+
+Cherries
+\begin_inset Quotes erd
+\end_inset
+
+ instead of 
+\begin_inset Quotes eld
+\end_inset
+
+Cherries, Sour
+\begin_inset Quotes erd
+\end_inset
+
+.
  Then the rest of the function was just the same as I did in part b.
  I previewed the first ten lines of the product 
 \begin_inset Quotes eld
@@ -502,7 +555,7 @@ function nametocode(){
 
 \begin_layout Plain Layout
 
-x=$(grep $1 codename.csv | cut -d'-' -f1) 	
+x=$(grep $1$ codename.csv | cut -d'-' -f1) 	
 \end_layout
 
 \begin_layout Plain Layout
@@ -705,7 +758,7 @@ status open
 
 \begin_layout Plain Layout
 
-<<plot_histograms,echo=TRUE,fig.width=3, fig.height=4>>=
+<<plot_histograms,fig.width=3, fig.height=4>>=
 \end_layout
 
 \begin_layout Plain Layout

@@ -39,7 +39,7 @@ httpcode
 wget --output-document codename.html "http://faostat.fao.org/site/384/default.aspx"
 grep "</td><td>" codename.html | sed 's/td//g' | sed -e 's/<.><>/-/g' | cut -d'-' -f2,4 | sort -u -t'-' > codename.csv
 function nametocode(){
-	x=$(grep $1 codename.csv | cut -d'-' -f1)
+	x=$(grep $1$ codename.csv | cut -d'-' -f1)
 	wget --output-document data$x.zip "http://data.un.org/Handlers/DownloadHandler.ashx?DataFilter=itemCode:$x&DataMartId=FAO&Format=csv&c=2,3,4,5,6,7&s=countryName:asc,elementCode:asc,year:desc" 
 	unzip -c data$x.zip | less
 }
