@@ -11,3 +11,9 @@
 # produced vignettes
 vignettes/*.html
 vignettes/*.pdf
+
+ps1/countries.csv
+ps1/countries_aprictos.csv
+ps1/data.csv
+ps1/data.zip
+ps1/ps1.pdf
