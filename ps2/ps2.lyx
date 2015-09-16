@@ -1,0 +1,946 @@
+#LyX 2.1 created this file. For more info see http://www.lyx.org/
+\lyxformat 474
+\begin_document
+\begin_header
+\textclass article
+\use_default_options true
+\begin_modules
+knitr
+\end_modules
+\maintain_unincluded_children false
+\language english
+\language_package default
+\inputencoding auto
+\fontencoding global
+\font_roman default
+\font_sans default
+\font_typewriter default
+\font_math auto
+\font_default_family default
+\use_non_tex_fonts false
+\font_sc false
+\font_osf false
+\font_sf_scale 100
+\font_tt_scale 100
+\graphics default
+\default_output_format default
+\output_sync 0
+\bibtex_command default
+\index_command default
+\paperfontsize default
+\spacing single
+\use_hyperref false
+\papersize default
+\use_geometry true
+\use_package amsmath 1
+\use_package amssymb 1
+\use_package cancel 1
+\use_package esint 1
+\use_package mathdots 1
+\use_package mathtools 1
+\use_package mhchem 1
+\use_package stackrel 1
+\use_package stmaryrd 1
+\use_package undertilde 1
+\cite_engine basic
+\cite_engine_type default
+\biblio_style plain
+\use_bibtopic false
+\use_indices false
+\paperorientation portrait
+\suppress_date false
+\justification true
+\use_refstyle 1
+\index Index
+\shortcut idx
+\color #008000
+\end_index
+\leftmargin 2.54cm
+\topmargin 2.54cm
+\rightmargin 2.54cm
+\bottommargin 2.54cm
+\secnumdepth 3
+\tocdepth 3
+\paragraph_separation indent
+\paragraph_indentation default
+\quotes_language english
+\papercolumns 1
+\papersides 1
+\paperpagestyle default
+\tracking_changes false
+\output_changes false
+\html_math_output 0
+\html_css_as_file 0
+\html_be_strict false
+\end_header
+
+\begin_body
+
+\begin_layout Title
+STAT 243 Problem Set 2
+\end_layout
+
+\begin_layout Author
+Tianyi Zhang
+\end_layout
+
+\begin_layout Section*
+1a
+\end_layout
+
+\begin_layout Standard
+In Problem 1a, I first downloaded the csv.bz file to be ss13hus.csv.bz2, then
+ I need to use the command read.csv to read the file chunk by chunk, with
+ the chunk size set to be 10000.
+ But first we need to specify the Colclasses to make the class of columns
+ we don' t want to be NULL so that it will skip these columns.
+ Detailed explanations are along side with the code.
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Plain Layout
+
+<<setcolumnclasses,cache=TRUE>>=
+\end_layout
+
+\begin_layout Plain Layout
+
+##How to select only selected columns
+\end_layout
+
+\begin_layout Plain Layout
+
+selectnames<-c("ST", "NP", "BDSP", "BLD", "RMSP", "TEN", "FI
+\backslash
+
+\end_layout
+
+\begin_layout Plain Layout
+
+NCP","FPARC","HHL","NOC", "MV", "VEH", "YBL")  
+\end_layout
+
+\begin_layout Plain Layout
+
+confirst=bzfile("ss13hus.csv.bz2", "r")
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+##This command will read the column names to be a vector called Allnames
+\end_layout
+
+\begin_layout Plain Layout
+
+Allnames<-read.csv(confirst,header=FALSE,nrow=1) 
+\end_layout
+
+\begin_layout Plain Layout
+
+close(confirst)
+\end_layout
+
+\begin_layout Plain Layout
+
+##Set the columnclass to be an empty vector, and this for loop will make
+ all positions
+\end_layout
+
+\begin_layout Plain Layout
+
+## of selected columns to be NA and others to be Null
+\end_layout
+
+\begin_layout Plain Layout
+
+columnclass=c()
+\end_layout
+
+\begin_layout Plain Layout
+
+for (i in Allnames){   
+\end_layout
+
+\begin_layout Plain Layout
+
+	if(is.element(i,selectnames))      
+\end_layout
+
+\begin_layout Plain Layout
+
+	columnclass=c(columnclass,NA)   
+\end_layout
+
+\begin_layout Plain Layout
+
+	else     
+\end_layout
+
+\begin_layout Plain Layout
+
+	columnclass=c(columnclass,"NULL") } 
+\end_layout
+
+\begin_layout Plain Layout
+
+## We created a vector called nameposition which records what are the correspond
+ing
+\end_layout
+
+\begin_layout Plain Layout
+
+## positions in the Allnames, so it's easy for us to add colnames back to
+ the sample.
+\end_layout
+
+\begin_layout Plain Layout
+
+Allnamesvector<-as.vector(as.matrix(Allnames)) 
+\end_layout
+
+\begin_layout Plain Layout
+
+nameposition<-match(selectnames,Allnamesvector)
+\end_layout
+
+\begin_layout Plain Layout
+
+## The right order vector is the colnames we add back in each step.
+\end_layout
+
+\begin_layout Plain Layout
+
+rightorder<-Allnamesvector[sort(nameposition)]
+\end_layout
+
+\begin_layout Plain Layout
+
+@
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Then I made a vector of length 10000 using the sample function from 7219001,
+ which is the number of rows of the data file.
+ I started from 2 because I put Header=False in the future steps and I don't
+ want to take the column names row to become one of my sample.
+ Then I created a True False vector, and put the selected positions of this
+ vector to be TRUE based on the previous random sample.
+ 
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Plain Layout
+
+<<randomvector,cache=TRUE>>=
+\end_layout
+
+\begin_layout Plain Layout
+
+set.seed(0) 
+\end_layout
+
+\begin_layout Plain Layout
+
+randomsample<-sort(sample(2:7219001,10000)) 
+\end_layout
+
+\begin_layout Plain Layout
+
+randomvector<-rep(FALSE,7300000) 
+\end_layout
+
+\begin_layout Plain Layout
+
+randomvector[randomsample]<-TRUE
+\end_layout
+
+\begin_layout Plain Layout
+
+@
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+I wrote a function called csvread, which took filename, blocksize, and number
+ of total columns wanted to read as input.
+ In this specific assignment, I would read 10000 chunks each time.
+ To aviod using the command skip in the read.csv, I will set up a file connection
+ called con, which is dynamic.
+ I will also created an empty dataframe with size 10000*13 to place sample
+ extracted from each chunk.
+ By creating a for loop, I am also able to remove each data chunk at the
+ end of the loop to save my memory.
+ 
+\end_layout
+
+\begin_layout Standard
+Detailed explanation is alongside with my code.
+ 
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Plain Layout
+
+<<csvread>>=
+\end_layout
+
+\begin_layout Plain Layout
+
+csvread<-function(filename,blocksize,numcolumns){
+\end_layout
+
+\begin_layout Plain Layout
+
+  con<-bzfile(filename,open="r")
+\end_layout
+
+\begin_layout Plain Layout
+
+##Creating the empty sample dataframe.
+\end_layout
+
+\begin_layout Plain Layout
+
+  sampledata<-data.frame(matrix(numeric(0),ncol=13, nrow = 10000),stringsAsFactor
+s=FALSE)
+\end_layout
+
+\begin_layout Plain Layout
+
+##Initialize the position called position_record so that I know 
+\end_layout
+
+\begin_layout Plain Layout
+
+## where to insert in that sample dataframe.
+ 
+\end_layout
+
+\begin_layout Plain Layout
+
+  position_record=0
+\end_layout
+
+\begin_layout Plain Layout
+
+  for (i in 1:ceiling(numcolumns/blocksize)){
+\end_layout
+
+\begin_layout Plain Layout
+
+    chunck<-read.csv(con,nrows=blocksize,header=FALSE,colClasses=columnclass)
+\end_layout
+
+\begin_layout Plain Layout
+
+##We extract the sample from this specific chunk, and the upper bound is
+ 
+\end_layout
+
+\begin_layout Plain Layout
+
+## i*blocksize, and the good thing is we can directly use the logical 
+\end_layout
+
+\begin_layout Plain Layout
+
+## vector to take the subset.
+\end_layout
+
+\begin_layout Plain Layout
+
+    samplefromchunck<-chunck[randomvector[((i-1)*blocksize+1):(i*blocksize)],]
+\end_layout
+
+\begin_layout Plain Layout
+
+## We subsistute the part of the pre-created data frame to be the one just
+ extracted.
+\end_layout
+
+\begin_layout Plain Layout
+
+    sampledata[(position_record+1):(position_record+nrow(samplefromchunck)),]<-s
+amplefromchunck
+\end_layout
+
+\begin_layout Plain Layout
+
+## Update the Position.
+\end_layout
+
+\begin_layout Plain Layout
+
+    position_record=position_record+nrow(samplefromchunck)
+\end_layout
+
+\begin_layout Plain Layout
+
+## Remove used data to save memory
+\end_layout
+
+\begin_layout Plain Layout
+
+    rm(chunck)
+\end_layout
+
+\begin_layout Plain Layout
+
+    rm(samplefromchunck)
+\end_layout
+
+\begin_layout Plain Layout
+
+  }
+\end_layout
+
+\begin_layout Plain Layout
+
+  colnames(sampledata)<-rightorder
+\end_layout
+
+\begin_layout Plain Layout
+
+  return(sampledata)
+\end_layout
+
+\begin_layout Plain Layout
+
+  close(con)
+\end_layout
+
+\begin_layout Plain Layout
+
+}
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+system.time(test<-csvread("ss13hus.csv.bz2",10000,20000))
+\end_layout
+
+\begin_layout Plain Layout
+
+head(test)
+\end_layout
+
+\begin_layout Plain Layout
+
+@
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Section*
+1b
+\end_layout
+
+\begin_layout Standard
+Here we compare readLines and read.csv commands, and their system time.
+ It was found that readLines would be a little faster than read.csv.
+ readLines also returns a vector, so we need to extract that vector to a
+ dataframe each time.
+ We use the package stringr to split
+\begin_inset Quotes erd
+\end_inset
+
+,
+\begin_inset Quotes erd
+\end_inset
+
+.
+ Then we turn it into another vector, then we flip this vector up to be
+ a matrix with nrow=# of elements in that sample, and now it becomes a dataframe
+ after we applying the vector 
+\begin_inset Quotes eld
+\end_inset
+
+rightorder
+\begin_inset Quotes erd
+\end_inset
+
+ to take the right columns of that .
+ Other techniques are essentially the same as it was in 1a.
+\end_layout
+
+\begin_layout Standard
+Detailed explanations are along side with the code.
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Plain Layout
+
+<<lineread>>=
+\end_layout
+
+\begin_layout Plain Layout
+
+print(nameposition)
+\end_layout
+
+\begin_layout Plain Layout
+
+##Here is the function that "breaks" every element in the row in to another
+ vector.
+\end_layout
+
+\begin_layout Plain Layout
+
+library(stringr) 
+\end_layout
+
+\begin_layout Plain Layout
+
+splitvector<-function(x){   
+\end_layout
+
+\begin_layout Plain Layout
+
+	str_split(x, ",") 
+\end_layout
+
+\begin_layout Plain Layout
+
+} 
+\end_layout
+
+\begin_layout Plain Layout
+
+lineread<-function(filename,blocksize,numcolumns){   
+\end_layout
+
+\begin_layout Plain Layout
+
+	for (i in 1:ceiling(numcolumns/blocksize)){     
+\end_layout
+
+\begin_layout Plain Layout
+
+		con2<-bzfile(filename, "r")     
+\end_layout
+
+\begin_layout Plain Layout
+
+		sampledata<-data.frame(matrix(numeric(0),ncol=13, nrow = 10000),stringsAsFactor
+s=FALSE)     
+\end_layout
+
+\begin_layout Plain Layout
+
+		position_record=0     
+\end_layout
+
+\begin_layout Plain Layout
+
+		chunck<-readLines(con2,blocksize)    
+\end_layout
+
+\begin_layout Plain Layout
+
+		samplefromchunck<-chunck[randomvector[((i-1)*blocksize+1):(i*blocksize)]]
+     
+\end_layout
+
+\begin_layout Plain Layout
+
+		samplelines<-lapply(samplefromchunck,splitvector) 
+\end_layout
+
+\begin_layout Plain Layout
+
+## This command transforms a large list, with all elements listed vertically
+ to a dataframe,
+\end_layout
+
+\begin_layout Plain Layout
+
+## We know the number of rows should be equal to the number of samples in
+ this chunk, thus
+\end_layout
+
+\begin_layout Plain Layout
+
+## we just set nrow=length and we are done.
+ 
+\end_layout
+
+\begin_layout Plain Layout
+
+		sampledataframe<- data.frame(matrix(unlist(samplelines), nrow=length(samplefrom
+chunck), byrow=TRUE))
+\end_layout
+
+\begin_layout Plain Layout
+
+		sampledataframe<-sampledataframe[, nameposition]     
+\end_layout
+
+\begin_layout Plain Layout
+
+		sampledata[(position_record+1):(position_record+nrow(sampledataframe)),]<-samp
+ledataframe     
+\end_layout
+
+\begin_layout Plain Layout
+
+		position_record=position_record+nrow(sampledataframe)     
+\end_layout
+
+\begin_layout Plain Layout
+
+		rm(chunck)     
+\end_layout
+
+\begin_layout Plain Layout
+
+		rm(sampledataframe)     
+\end_layout
+
+\begin_layout Plain Layout
+
+		rm(samplefromchunck)     
+\end_layout
+
+\begin_layout Plain Layout
+
+		rm(samplelines)     
+\end_layout
+
+\begin_layout Plain Layout
+
+		print(i)   
+\end_layout
+
+\begin_layout Plain Layout
+
+}   
+\end_layout
+
+\begin_layout Plain Layout
+
+	close(con2)
+\end_layout
+
+\begin_layout Plain Layout
+
+	colnames(sampledata)<-rightorder  
+\end_layout
+
+\begin_layout Plain Layout
+
+	return(sampledata) 
+\end_layout
+
+\begin_layout Plain Layout
+
+}
+\end_layout
+
+\begin_layout Plain Layout
+
+system.time(b<-lineread("ss13hus.csv.bz2",10000,20000))
+\end_layout
+
+\begin_layout Plain Layout
+
+@
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Section*
+1c
+\end_layout
+
+\begin_layout Standard
+In 1c, we utilize bash to speed up our process.
+ We can first cut out those selected columns, and then there are only 13
+ variables in the file so we apply the same technique as in (a) to the cut
+ dataset.
+ First we store the name position vector we created in part a, and make
+ it to be a sequence of numbers variable in bash.
+ Then we are able to use the bunzip2 command to cut the fields.
+ Notice that bunzip2 -c would not unzip the whole file, instead it will
+ read the zipped fly like a streaming, and we store the field we want to
+ be newdata.csv, which has size 252MB.
+ Here since we only have 13 columns in that csv file, thus we don't need
+ to put the variable colclasses in the read.csv.
+ We obeserved that with preprocessing in bash, it only take less than a
+ mintue to sample the data in R.
+ The rest is the same with part a.
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Plain Layout
+
+<<nameposition>>=
+\end_layout
+
+\begin_layout Plain Layout
+
+write(nameposition,file="nameposition.txt")
+\end_layout
+
+\begin_layout Plain Layout
+
+@
+\end_layout
+
+\begin_layout Plain Layout
+
+<<engine='bash',eval=FALSE>>=
+\end_layout
+
+\begin_layout Plain Layout
+
+##Here I make all spaces and newlines to be commas, so that it
+\end_layout
+
+\begin_layout Plain Layout
+
+## can be read by the cut command in bash.
+ 
+\end_layout
+
+\begin_layout Plain Layout
+
+nameposition=$(sed 's/ /,/g' nameposition.txt | sed 'N;s/
+\backslash
+n/,/' | s
+\backslash
+
+\end_layout
+
+\begin_layout Plain Layout
+
+ed 'N;s/
+\backslash
+n/,/') 
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+bunzip2 -c ss13hus.csv.bz2 | cut -d',' -f$nameposition > newdata.csv
+\end_layout
+
+\begin_layout Plain Layout
+
+@
+\end_layout
+
+\begin_layout Plain Layout
+
+<<bashapproach,cache=TRUE>>=
+\end_layout
+
+\begin_layout Plain Layout
+
+bashread<-function(filename,blocksize,numcolumns){
+\end_layout
+
+\begin_layout Plain Layout
+
+  con1<-file(filename,open="r")
+\end_layout
+
+\begin_layout Plain Layout
+
+##Creating the empty sample dataframe.
+\end_layout
+
+\begin_layout Plain Layout
+
+  sampledata<-data.frame(matrix(numeric(0),ncol=13, nrow = 10000),stringsAsFactor
+s=FALSE)
+\end_layout
+
+\begin_layout Plain Layout
+
+##Initialize the position called position_record so that I know 
+\end_layout
+
+\begin_layout Plain Layout
+
+## where to insert in that sample dataframe.
+ 
+\end_layout
+
+\begin_layout Plain Layout
+
+  position_record=0
+\end_layout
+
+\begin_layout Plain Layout
+
+  for (i in 1:ceiling(numcolumns/blocksize)){
+\end_layout
+
+\begin_layout Plain Layout
+
+    chunck<-read.csv(con1,nrows=blocksize,header=FALSE)
+\end_layout
+
+\begin_layout Plain Layout
+
+##We extract the sample from this specific chunk, and the upper bound is
+ 
+\end_layout
+
+\begin_layout Plain Layout
+
+## i*blocksize, and the good thing is we can directly use the logical 
+\end_layout
+
+\begin_layout Plain Layout
+
+## vector to take the subset.
+\end_layout
+
+\begin_layout Plain Layout
+
+    samplefromchunck<-chunck[randomvector[((i-1)*blocksize+1):(i*blocksize)],]
+\end_layout
+
+\begin_layout Plain Layout
+
+## We subsistute the part of the pre-created data frame to be the one just
+ extracted.
+\end_layout
+
+\begin_layout Plain Layout
+
+    sampledata[(position_record+1):(position_record+nrow(samplefromchunck)),]<-s
+amplefromchunck
+\end_layout
+
+\begin_layout Plain Layout
+
+## Update the Position, so the next loop will start at the end of the previous
+ loop.
+\end_layout
+
+\begin_layout Plain Layout
+
+    position_record=position_record+nrow(samplefromchunck)
+\end_layout
+
+\begin_layout Plain Layout
+
+## Remove used data to save memory
+\end_layout
+
+\begin_layout Plain Layout
+
+    rm(chunck)
+\end_layout
+
+\begin_layout Plain Layout
+
+    rm(samplefromchunck)
+\end_layout
+
+\begin_layout Plain Layout
+
+  }
+\end_layout
+
+\begin_layout Plain Layout
+
+  colnames(sampledata)<-rightorder
+\end_layout
+
+\begin_layout Plain Layout
+
+  return(sampledata)
+\end_layout
+
+\begin_layout Plain Layout
+
+  close(con1)
+\end_layout
+
+\begin_layout Plain Layout
+
+}
+\end_layout
+
+\begin_layout Plain Layout
+
+system.time(test3<-bashread("newdata.csv",100000,7219001))
+\end_layout
+
+\begin_layout Plain Layout
+
+head(test3)
+\end_layout
+
+\begin_layout Plain Layout
+
+@
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Section*
+1d
+\end_layout
+
+\begin_layout Standard
+I will do the cross-table for two varibales 
+\end_layout
+
+\end_body
+\end_document
