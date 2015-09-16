@@ -113,14 +113,8 @@ status open
 
 \begin_layout Plain Layout
 
-selectnames<-c("ST", "NP", "BDSP", "BLD", "RMSP", "TEN", "FI
-\backslash
-
-\end_layout
-
-\begin_layout Plain Layout
-
-NCP","FPARC","HHL","NOC", "MV", "VEH", "YBL")  
+selectnames<-c("ST", "NP", "BDSP", "BLD", "RMSP", "TEN", "FINCP","FPARC","HHL","
+NOC", "MV", "VEH", "YBL")  
 \end_layout
 
 \begin_layout Plain Layout
@@ -202,7 +196,7 @@ ing
 
 \begin_layout Plain Layout
 
-Allnamesvector<-as.vector(as.matrix(Allnames)) 
+Allnamesvector<-as.vector(as.matrix(Allnames))
 \end_layout
 
 \begin_layout Plain Layout
@@ -218,6 +212,11 @@ nameposition<-match(selectnames,Allnamesvector)
 \begin_layout Plain Layout
 
 rightorder<-Allnamesvector[sort(nameposition)]
+\end_layout
+
+\begin_layout Plain Layout
+
+print(rightorder)
 \end_layout
 
 \begin_layout Plain Layout
@@ -510,7 +509,7 @@ status open
 
 \begin_layout Plain Layout
 
-<<lineread>>=
+<<lineread,eval=TRUE>>=
 \end_layout
 
 \begin_layout Plain Layout
@@ -607,12 +606,7 @@ s=FALSE)
 \begin_layout Plain Layout
 
 		sampledataframe<- data.frame(matrix(unlist(samplelines), nrow=length(samplefrom
-chunck), byrow=TRUE))
-\end_layout
-
-\begin_layout Plain Layout
-
-		sampledataframe<-sampledataframe[, nameposition]     
+chunck), byrow=TRUE))[,nameposition]     
 \end_layout
 
 \begin_layout Plain Layout
@@ -643,12 +637,7 @@ ledataframe
 
 \begin_layout Plain Layout
 
-		rm(samplelines)     
-\end_layout
-
-\begin_layout Plain Layout
-
-		print(i)   
+		rm(samplelines)    
 \end_layout
 
 \begin_layout Plain Layout
@@ -679,6 +668,11 @@ ledataframe
 \begin_layout Plain Layout
 
 system.time(b<-lineread("ss13hus.csv.bz2",10000,20000))
+\end_layout
+
+\begin_layout Plain Layout
+
+head(b)
 \end_layout
 
 \begin_layout Plain Layout
@@ -719,7 +713,7 @@ status open
 
 \begin_layout Plain Layout
 
-<<nameposition>>=
+<<nameposition,eval=FALSE>>=
 \end_layout
 
 \begin_layout Plain Layout
@@ -780,7 +774,7 @@ bunzip2 -c ss13hus.csv.bz2 | cut -d',' -f$nameposition > newdata.csv
 
 \begin_layout Plain Layout
 
-<<bashapproach,cache=TRUE>>=
+<<bashapproach,cache=TRUE,EVAL=FALSE>>=
 \end_layout
 
 \begin_layout Plain Layout
@@ -939,7 +933,7 @@ head(test3)
 \end_layout
 
 \begin_layout Standard
-I will do the cross-table for two varibales 
+I will do the cross-table for two varibales to see their correlations
 \end_layout
 
 \end_body
