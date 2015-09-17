@@ -230,6 +230,13 @@ print(rightorder)
 \end_layout
 
 \begin_layout Standard
+First we need to see how many rows are there in this file so that we can
+ determine the length of the random vector.
+ We use the bash command wc -l to look at it.
+ 
+\end_layout
+
+\begin_layout Standard
 Then I made a vector of length 10000 using the sample function from 7219001,
  which is the number of rows of the data file.
  I started from 2 because I put Header=False in the future steps and I don't
@@ -242,6 +249,21 @@ Then I made a vector of length 10000 using the sample function from 7219001,
 \begin_layout Standard
 \begin_inset ERT
 status open
+
+\begin_layout Plain Layout
+
+<<rows,engine='bash',eval=FALSE>>=
+\end_layout
+
+\begin_layout Plain Layout
+
+bzcat ss13hus.csv.bz2 | wc -l
+\end_layout
+
+\begin_layout Plain Layout
+
+@
+\end_layout
 
 \begin_layout Plain Layout
 
@@ -353,7 +375,8 @@ s=FALSE)
 
 \begin_layout Plain Layout
 
-    chunck<-read.csv(con,nrows=blocksize,header=FALSE,colClasses=columnclass)
+    chunck<-read.csv(con,nrows=blocksize,header=FALSE,colClasses=columnclass,stri
+ngsAsFactors=FALSE)
 \end_layout
 
 \begin_layout Plain Layout
@@ -606,7 +629,7 @@ s=FALSE)
 \begin_layout Plain Layout
 
 		sampledataframe<- data.frame(matrix(unlist(samplelines), nrow=length(samplefrom
-chunck), byrow=TRUE))[,nameposition]     
+chunck), byrow=TRUE))[,sort(nameposition)]     
 \end_layout
 
 \begin_layout Plain Layout
@@ -728,6 +751,10 @@ write(nameposition,file="nameposition.txt")
 
 \begin_layout Plain Layout
 
+\end_layout
+
+\begin_layout Plain Layout
+
 <<engine='bash',eval=FALSE>>=
 \end_layout
 
@@ -770,6 +797,10 @@ bunzip2 -c ss13hus.csv.bz2 | cut -d',' -f$nameposition > newdata.csv
 \begin_layout Plain Layout
 
 @
+\end_layout
+
+\begin_layout Plain Layout
+
 \end_layout
 
 \begin_layout Plain Layout
@@ -821,7 +852,7 @@ s=FALSE)
 
 \begin_layout Plain Layout
 
-    chunck<-read.csv(con1,nrows=blocksize,header=FALSE)
+    chunck<-read.csv(con1,nrows=blocksize,header=FALSE,stringsAsFactors=FALSE)
 \end_layout
 
 \begin_layout Plain Layout
