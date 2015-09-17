@@ -629,7 +629,7 @@ s=FALSE)
 \begin_layout Plain Layout
 
 		sampledataframe<- data.frame(matrix(unlist(samplelines), nrow=length(samplefrom
-chunck), byrow=TRUE))[,sort(nameposition)]     
+chunck), byrow=TRUE),stringsAsFactors=FALSE)[,sort(nameposition)]     
 \end_layout
 
 \begin_layout Plain Layout

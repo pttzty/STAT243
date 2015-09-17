@@ -66,7 +66,7 @@ lineread<-function(filename,blocksize,numcolumns){
     
     samplelines<-lapply(samplefromchunck,splitvector)
    
-    sampledataframe<- data.frame(matrix(unlist(samplelines), nrow=length(samplefromchunck), byrow=TRUE))[, sort(nameposition)]
+    sampledataframe<- data.frame(matrix(unlist(samplelines), nrow=length(samplefromchunck), byrow=TRUE),stringsAsFactors=FALSE)[, sort(nameposition)]
   
     sampledata[(position_record+1):(position_record+nrow(sampledataframe)),]<-sampledataframe
     position_record=position_record+nrow(sampledataframe)
