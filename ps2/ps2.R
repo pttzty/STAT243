@@ -18,6 +18,24 @@ for (i in Allnames){
     columnclass=c(columnclass,"NULL")
 }
 
+
+selectcolumn<-function(filename){
+  selectnames<-c("ST", "NP", "BDSP", "BLD", "RMSP", "TEN", "FINCP","FPARC", "HHL", "NOC", "MV", "VEH", "YBL")
+  confirst=file(filename, "r")
+  ##This command will read the column names to be a vector called Allnames
+  Allnames<-read.csv(confirst,header=FALSE,nrow=1)
+  close(confirst)
+  columnclass=c()
+  for (i in Allnames){
+    if(is.element(i,selectnames))
+      columnclass=c(columnclass,NA)
+    else
+      columnclass=c(columnclass,"NULL")
+  }
+  return(columnclass)
+}
+
+
 ##A
 set.seed(0)
 randomsample<-sort(sample(2:7219001,10000))
@@ -29,9 +47,10 @@ nameposition<-match(selectnames,Allnamesvector)
 rightorder<-Allnamesvector[sort(nameposition)]
 
 csvread<-function(filename,blocksize,numcolumns){
-  con<-bzfile(filename,open="r")
+  con<-file(filename,open="r")
   sampledata<-data.frame(matrix(numeric(0),ncol=13, nrow = 10000),stringsAsFactors=FALSE)
   position_record=0
+  columnclass<-selectcolumn(filename)
   for (i in 1:ceiling(numcolumns/blocksize)){
     chunck<-read.csv(con,nrows=blocksize,header=FALSE,colClasses=columnclass,stringsAsFactors=FALSE)
     samplefromchunck<-chunck[randomvector[((i-1)*blocksize+1):(i*blocksize)],]
@@ -47,21 +66,17 @@ csvread<-function(filename,blocksize,numcolumns){
 }
 
 ##Readlines Approach
-randomsample<-sort(sample(2:7219001,10000))
-randomvector<-rep(FALSE,7300000)
-randomvector[randomsample]<-TRUE
 library(stringr)
 splitvector<-function(x){
   str_split(x, ",")
 }
 
 lineread<-function(filename,blocksize,numcolumns){
+  con2<-bzfile(filename, "r")
+  sampledata<-data.frame(matrix(numeric(0),ncol=13, nrow = 10000),stringsAsFactors=FALSE)
+  position_record=0
+  chunck<-readLines(con2,blocksize)
   for (i in 1:ceiling(numcolumns/blocksize)){
-    con2<-bzfile(filename, "r")
-    sampledata<-data.frame(matrix(numeric(0),ncol=13, nrow = 10000),stringsAsFactors=FALSE)
-    position_record=0
-    chunck<-readLines(con2,blocksize)
-    
     samplefromchunck<-chunck[randomvector[((i-1)*blocksize+1):(i*blocksize)]]
     
     samplelines<-lapply(samplefromchunck,splitvector)
@@ -82,18 +97,6 @@ lineread<-function(filename,blocksize,numcolumns){
 }
 
 ##bash Approach, function
-selectnames<-c("ST", "NP", "BDSP", "BLD", "RMSP", "TEN", "FINCP","FPARC", "HHL", "NOC", "MV", "VEH", "YBL")
-confirst=bzfile("ss13hus.csv.bz2", "r")
-Allnames<-read.csv(confirst,header=FALSE,nrow=1)
-close(confirst)
-Allnamesvector<-as.vector(as.matrix(Allnames))
-nameposition<-match(selectnames,Allnamesvector)
-write(nameposition,file="nameposition.txt")
-
-randomsample<-sort(sample(2:7219001,10000))
-randomvector<-rep(FALSE,7300000)
-randomvector[randomsample]<-TRUE
-rightorder<-Allnamesvector[sort(nameposition)]
 
 bashread<-function(filename,blocksize,numcolumns){
   con1<-file(filename,open="r")
@@ -113,5 +116,6 @@ bashread<-function(filename,blocksize,numcolumns){
   return(sampledata)
 }
 
-
+##D
 plot(sampledata$BDSP,sampledata$RMSP)
+plot(sampledata$NP,sampledata$NOC)

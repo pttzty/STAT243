@@ -89,12 +89,13 @@ Tianyi Zhang
 \end_layout
 
 \begin_layout Standard
-In Problem 1a, I first downloaded the csv.bz file to be ss13hus.csv.bz2, then
- I need to use the command read.csv to read the file chunk by chunk, with
- the chunk size set to be 10000.
+In Problem 1a, I first downloaded the csv.bz file to be ss13hus.csv.bz2 using
+ the wget command in bash, then I need to use the command read.csv to read
+ the file chunk by chunk, with the chunk size set to be 10000.
  But first we need to specify the Colclasses to make the class of columns
  we don' t want to be NULL so that it will skip these columns.
- Detailed explanations are along side with the code.
+ I wrote a function called selectcolumn so that I can call Detailed explanations
+ are along side with the code.
 \end_layout
 
 \begin_layout Standard
@@ -108,22 +109,18 @@ status open
 
 \begin_layout Plain Layout
 
-##How to select only selected columns
+selectcolumn<-function(filename){   
 \end_layout
 
 \begin_layout Plain Layout
 
-selectnames<-c("ST", "NP", "BDSP", "BLD", "RMSP", "TEN", "FINCP","FPARC","HHL","
-NOC", "MV", "VEH", "YBL")  
+	selectnames<-c("ST", "NP", "BDSP", "BLD", "RMSP", "TEN", "FINCP","FPARC",
+ "HHL", "NOC", "MV", "VEH", "YBL")   
 \end_layout
 
 \begin_layout Plain Layout
 
-confirst=bzfile("ss13hus.csv.bz2", "r")
-\end_layout
-
-\begin_layout Plain Layout
-
+	confirst=file(filename, "r")   
 \end_layout
 
 \begin_layout Plain Layout
@@ -133,12 +130,12 @@ confirst=bzfile("ss13hus.csv.bz2", "r")
 
 \begin_layout Plain Layout
 
-Allnames<-read.csv(confirst,header=FALSE,nrow=1) 
+	Allnames<-read.csv(confirst,header=FALSE,nrow=1)   
 \end_layout
 
 \begin_layout Plain Layout
 
-close(confirst)
+	close(confirst) 
 \end_layout
 
 \begin_layout Plain Layout
@@ -149,37 +146,101 @@ close(confirst)
 
 \begin_layout Plain Layout
 
-## of selected columns to be NA and others to be Null
+## of selected columns to be NA and others to be Null 
 \end_layout
 
 \begin_layout Plain Layout
 
-columnclass=c()
+	columnclass=c()   
 \end_layout
 
 \begin_layout Plain Layout
 
-for (i in Allnames){   
+	for (i in Allnames){     
 \end_layout
 
 \begin_layout Plain Layout
 
-	if(is.element(i,selectnames))      
+		if(is.element(i,selectnames))       
 \end_layout
 
 \begin_layout Plain Layout
 
-	columnclass=c(columnclass,NA)   
+		columnclass=c(columnclass,NA)     
 \end_layout
 
 \begin_layout Plain Layout
 
-	else     
+		else       
 \end_layout
 
 \begin_layout Plain Layout
 
-	columnclass=c(columnclass,"NULL") } 
+		columnclass=c(columnclass,"NULL")  
+\end_layout
+
+\begin_layout Plain Layout
+
+	}   
+\end_layout
+
+\begin_layout Plain Layout
+
+	return(columnclass)
+\end_layout
+
+\begin_layout Plain Layout
+
+} 
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+selectnames<-c("ST", "NP", "BDSP", "BLD", "RMSP", "TEN", "FINCP","FPARC",
+ "HHL", "NOC", "MV", "VEH", "YBL")
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+##make the first file connection to that zipped file.
+ 
+\end_layout
+
+\begin_layout Plain Layout
+
+confirst=bzfile("ss13hus.csv.bz2", "r") 
+\end_layout
+
+\begin_layout Plain Layout
+
+##This command will read the column names to be a vector called Allnames
+ 
+\end_layout
+
+\begin_layout Plain Layout
+
+Allnames<-read.csv(confirst,header=FALSE,nrow=1)
+\end_layout
+
+\begin_layout Plain Layout
+
+close(confirst) 
+\end_layout
+
+\begin_layout Plain Layout
+
 \end_layout
 
 \begin_layout Plain Layout
@@ -252,7 +313,7 @@ status open
 
 \begin_layout Plain Layout
 
-<<rows,engine='bash',eval=FALSE>>=
+<<rows,engine='bash'>>=
 \end_layout
 
 \begin_layout Plain Layout
@@ -272,7 +333,7 @@ bzcat ss13hus.csv.bz2 | wc -l
 
 \begin_layout Plain Layout
 
-set.seed(0) 
+set.seed(1) 
 \end_layout
 
 \begin_layout Plain Layout
@@ -323,12 +384,18 @@ Detailed explanation is alongside with my code.
 \end_layout
 
 \begin_layout Standard
+It took me around 15 mins to finish the sampling of 10000 rows from this
+ sample.
+ 
+\end_layout
+
+\begin_layout Standard
 \begin_inset ERT
 status open
 
 \begin_layout Plain Layout
 
-<<csvread>>=
+<<csvread,cache=TRUE>>=
 \end_layout
 
 \begin_layout Plain Layout
@@ -338,7 +405,7 @@ csvread<-function(filename,blocksize,numcolumns){
 
 \begin_layout Plain Layout
 
-  con<-bzfile(filename,open="r")
+  con<-file(filename,open="r")
 \end_layout
 
 \begin_layout Plain Layout
@@ -366,6 +433,11 @@ s=FALSE)
 \begin_layout Plain Layout
 
   position_record=0
+\end_layout
+
+\begin_layout Plain Layout
+
+  columnclass<-selectcolumn(filename)
 \end_layout
 
 \begin_layout Plain Layout
@@ -468,7 +540,7 @@ amplefromchunck
 
 \begin_layout Plain Layout
 
-system.time(test<-csvread("ss13hus.csv.bz2",10000,20000))
+system.time(test<-csvread("ss13hus.csv.bz2",100000,7219001))
 \end_layout
 
 \begin_layout Plain Layout
@@ -527,12 +599,18 @@ Detailed explanations are along side with the code.
 \end_layout
 
 \begin_layout Standard
+Readline command is a little bit faster than read.csv compared with the result
+ in (a), but not so significant.
+ 
+\end_layout
+
+\begin_layout Standard
 \begin_inset ERT
 status open
 
 \begin_layout Plain Layout
 
-<<lineread,eval=TRUE>>=
+<<lineread,warning=FALSE>>=
 \end_layout
 
 \begin_layout Plain Layout
@@ -568,28 +646,33 @@ splitvector<-function(x){
 
 \begin_layout Plain Layout
 
-lineread<-function(filename,blocksize,numcolumns){   
+lineread<-function(filename,blocksize,numcolumns){ 
 \end_layout
 
 \begin_layout Plain Layout
 
-	for (i in 1:ceiling(numcolumns/blocksize)){     
+	con2<-bzfile(filename, "r") 
 \end_layout
 
 \begin_layout Plain Layout
 
-		con2<-bzfile(filename, "r")     
+	con2<-bzfile(filename, "r")     
 \end_layout
 
 \begin_layout Plain Layout
 
-		sampledata<-data.frame(matrix(numeric(0),ncol=13, nrow = 10000),stringsAsFactor
-s=FALSE)     
+	sampledata<-data.frame(matrix(numeric(0),ncol=13, nrow = 10000),stringsAsFactors
+=FALSE)     
 \end_layout
 
 \begin_layout Plain Layout
 
-		position_record=0     
+	position_record=0   
+\end_layout
+
+\begin_layout Plain Layout
+
+	for (i in 1:ceiling(numcolumns/blocksize)){        
 \end_layout
 
 \begin_layout Plain Layout
@@ -690,7 +773,7 @@ ledataframe
 
 \begin_layout Plain Layout
 
-system.time(b<-lineread("ss13hus.csv.bz2",10000,20000))
+system.time(b<-lineread("ss13hus.csv.bz2",100000,7219001))
 \end_layout
 
 \begin_layout Plain Layout
@@ -723,11 +806,11 @@ In 1c, we utilize bash to speed up our process.
  Notice that bunzip2 -c would not unzip the whole file, instead it will
  read the zipped fly like a streaming, and we store the field we want to
  be newdata.csv, which has size 252MB.
- Here since we only have 13 columns in that csv file, thus we don't need
- to put the variable colclasses in the read.csv.
  We obeserved that with preprocessing in bash, it only take less than a
  mintue to sample the data in R.
- The rest is the same with part a.
+ The rest is the same with part a, we can just call the function csvread
+ wrote in part a to read the file which has been preprocessed.
+ 
 \end_layout
 
 \begin_layout Standard
@@ -791,6 +874,13 @@ n/,/')
 
 \begin_layout Plain Layout
 
+## This function cut the fields needed, this time nameposition is a sequence
+ of numbers.
+ 
+\end_layout
+
+\begin_layout Plain Layout
+
 bunzip2 -c ss13hus.csv.bz2 | cut -d',' -f$nameposition > newdata.csv
 \end_layout
 
@@ -805,143 +895,12 @@ bunzip2 -c ss13hus.csv.bz2 | cut -d',' -f$nameposition > newdata.csv
 
 \begin_layout Plain Layout
 
-<<bashapproach,cache=TRUE,EVAL=FALSE>>=
+<<bashapproach,cache=TRUE>>=
 \end_layout
 
 \begin_layout Plain Layout
 
-bashread<-function(filename,blocksize,numcolumns){
-\end_layout
-
-\begin_layout Plain Layout
-
-  con1<-file(filename,open="r")
-\end_layout
-
-\begin_layout Plain Layout
-
-##Creating the empty sample dataframe.
-\end_layout
-
-\begin_layout Plain Layout
-
-  sampledata<-data.frame(matrix(numeric(0),ncol=13, nrow = 10000),stringsAsFactor
-s=FALSE)
-\end_layout
-
-\begin_layout Plain Layout
-
-##Initialize the position called position_record so that I know 
-\end_layout
-
-\begin_layout Plain Layout
-
-## where to insert in that sample dataframe.
- 
-\end_layout
-
-\begin_layout Plain Layout
-
-  position_record=0
-\end_layout
-
-\begin_layout Plain Layout
-
-  for (i in 1:ceiling(numcolumns/blocksize)){
-\end_layout
-
-\begin_layout Plain Layout
-
-    chunck<-read.csv(con1,nrows=blocksize,header=FALSE,stringsAsFactors=FALSE)
-\end_layout
-
-\begin_layout Plain Layout
-
-##We extract the sample from this specific chunk, and the upper bound is
- 
-\end_layout
-
-\begin_layout Plain Layout
-
-## i*blocksize, and the good thing is we can directly use the logical 
-\end_layout
-
-\begin_layout Plain Layout
-
-## vector to take the subset.
-\end_layout
-
-\begin_layout Plain Layout
-
-    samplefromchunck<-chunck[randomvector[((i-1)*blocksize+1):(i*blocksize)],]
-\end_layout
-
-\begin_layout Plain Layout
-
-## We subsistute the part of the pre-created data frame to be the one just
- extracted.
-\end_layout
-
-\begin_layout Plain Layout
-
-    sampledata[(position_record+1):(position_record+nrow(samplefromchunck)),]<-s
-amplefromchunck
-\end_layout
-
-\begin_layout Plain Layout
-
-## Update the Position, so the next loop will start at the end of the previous
- loop.
-\end_layout
-
-\begin_layout Plain Layout
-
-    position_record=position_record+nrow(samplefromchunck)
-\end_layout
-
-\begin_layout Plain Layout
-
-## Remove used data to save memory
-\end_layout
-
-\begin_layout Plain Layout
-
-    rm(chunck)
-\end_layout
-
-\begin_layout Plain Layout
-
-    rm(samplefromchunck)
-\end_layout
-
-\begin_layout Plain Layout
-
-  }
-\end_layout
-
-\begin_layout Plain Layout
-
-  colnames(sampledata)<-rightorder
-\end_layout
-
-\begin_layout Plain Layout
-
-  return(sampledata)
-\end_layout
-
-\begin_layout Plain Layout
-
-  close(con1)
-\end_layout
-
-\begin_layout Plain Layout
-
-}
-\end_layout
-
-\begin_layout Plain Layout
-
-system.time(test3<-bashread("newdata.csv",100000,7219001))
+system.time(test3<-csvread("newdata.csv",100000,7219001))
 \end_layout
 
 \begin_layout Plain Layout
@@ -964,7 +923,78 @@ head(test3)
 \end_layout
 
 \begin_layout Standard
-I will do the cross-table for two varibales to see their correlations
+I will do the cross-table for two pairs of varibales to see their correlations
+ to see if our sample data make sense.
+ The pairs I choose are (BDSP,RMSP)-the number of bedrooms and number of
+ rooms and (NP,NOC)-# of people recorded and number of children in the family.
+ Those two pairs should both have the positive correlations intutively,
+ I will plot two scatter plots to illustrate this fact using the sample
+ generated from the approach using bash-preprocessing.
+ 
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Plain Layout
+
+<<scatterplots,fig.width=5,fig.height=5>>=
+\end_layout
+
+\begin_layout Plain Layout
+
+plot(test3$BDSP,test3$RMSP)
+\end_layout
+
+\begin_layout Plain Layout
+
+plot(test3$NP,test3$NOC)
+\end_layout
+
+\begin_layout Plain Layout
+
+@
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+From the result, we observed that both of pairs reveal positive relations,
+ which match the intuitions.
+ Moreover, we can see that Number of children in a family will not exceed
+ number of people in the family, which demonstrates that the sample is extracted
+ correctly.
+ 
+\end_layout
+
+\begin_layout Subsection*
+Notice:
+\end_layout
+
+\begin_layout Standard
+I have consulted some technical points of this problem set with Yueqi Feng
+ and Shamindra Shrotriya, including the mechanism of 
+\begin_inset Quotes eld
+\end_inset
+
+file connection
+\begin_inset Quotes erd
+\end_inset
+
+, because we originally used 
+\begin_inset Quotes eld
+\end_inset
+
+skip
+\begin_inset Quotes erd
+\end_inset
+
+ command, which was really slow.
+ 
 \end_layout
 
 \end_body
