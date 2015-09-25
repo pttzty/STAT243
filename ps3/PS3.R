@@ -32,6 +32,11 @@ Speechdataframe<-cbind(as.data.frame(first_html),Dateinfo)
 colnames(Speechdataframe)<-c("first_URL","Date")
 
 ##B
-speech2012<-htmlParse(Speechdataframe[1,1])
-nodes2012<-getNodeSet(speech2012,"//p")
-nodes2012
+speech1996<-htmlParse(Speechdataframe[5,1])
+# nodes1996<-getNodeSet(speech1996,"//p")
+# nodes1996<-sapply(nodes1996,toString.XMLNode)
+## By inspecting the Xpath Code of the element in Chrome.
+text1996<-xpathSApply(speech1996,"//p/text()",xmlValue)
+text1996<-as.list(text1996)
+cat(text1996)
+length(nodes2012)
