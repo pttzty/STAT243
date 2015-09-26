@@ -59,3 +59,10 @@ for (i in 2:nrow(finalframe)){
 ##Eliminate those name columns with NA, because the cotent has been concatenated. 
 finalframe<-finalframe[is.na(finalframe[,1])==FALSE,]
 
+##This step strip out the useless Laughter Applause and crosstalk tags from the speech.
+## Also strip out the speaker name at the very top of each paragraph
+finalframe[,2]<-str_replace_all(finalframe[,2],"\\(LAUGHTER\\)|\\(APPLAUSE\\)|\\(CROSSTALK\\)|^[A-Z]+:","")
+
+##Split into sentences and words
+a<-str_split(finalframe[,2],pattern = "\\. |? ")
+
