@@ -32,11 +32,30 @@ Speechdataframe<-cbind(as.data.frame(first_html),Dateinfo)
 colnames(Speechdataframe)<-c("first_URL","Date")
 
 ##B
-speech1996<-htmlParse(Speechdataframe[5,1])
-# nodes1996<-getNodeSet(speech1996,"//p")
-# nodes1996<-sapply(nodes1996,toString.XMLNode)
+speech_data<-htmlParse(Speechdataframe[1,1])
 ## By inspecting the Xpath Code of the element in Chrome.
-text1996<-xpathSApply(speech1996,"//p/text()",xmlValue)
-text1996<-as.list(text1996)
-cat(text1996)
-length(nodes2012)
+text_data<-xpathSApply(speech_data,"//p/text()",xmlValue)
+##Good Look
+cat(paste(text_data,collapse="\n\n"))
+
+text_data<-as.list(text_data)
+# z <- lapply(text_data
+#        ,function(x){y <-as.character(str_match(string=x, pattern="^[A-Z]+:"))
+#                     return(y)})
+# z
+speakernames <- as.list(str_replace(as.list(str_match(text_data,"^[A-Z]+:")),":",replacement=""))
+# speakernames<-as.list(str_match(text_data,"^[A-Z]+:"))
+finalframe<-cbind(speakernames,text_data)
+
+speakerposition<-1
+for (i in 2:nrow(finalframe)){
+  if(is.na(finalframe[i,1])==FALSE){
+    speakerposition<-i
+  }
+  if(is.na(finalframe[i,1])){
+    finalframe[speakerposition,2]<-paste(finalframe[speakerposition,2],finalframe[i,2],collapse="\n\n")
+  }
+}
+##Eliminate those name columns with NA, because the cotent has been concatenated. 
+finalframe<-finalframe[is.na(finalframe[,1])==FALSE,]
+
