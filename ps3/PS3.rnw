@@ -9,6 +9,7 @@ library(XML)
 library(RCurl)
 library(curl)
 library(stringr)
+library(methods)
 # also a good place to set global chunk options
 
 library(knitr) # need this for opts_chunk command
@@ -106,7 +107,11 @@ textbody<-function(year){
 
 @
 \subsection{2D}
-In section D, I created a function called split_word_sentence
+In this section, I took the URLink as an input and returned a dataframe for future use.\\
+This dataframe contained speakernames in the first column: like "OBAMA" "ROMNEY" "OBAMA",\\
+with no neighborhood the same (means no "OBAMA" "OBAMA"). In the second column, it's the raw text with laugther and applause tags. In the third column, I name it spoken text because it does not contain non-spoken texts. \\
+Notice that I did eliminate the speaker names at first of some paragraphs, and to combine neighbor chunks by the same person to one chunk, I used a for loop. (I know groupby option in dplyr is a good option, but I am running a ubuntu with R 3.0, which did not support dplyr)
+By doing this, I can easily take subset of each candidate by data frame operations.
 \newline
 <<cache=TRUE>>=
 split_word_sentence<-function(finalframe){
@@ -180,5 +185,101 @@ main<-function(year){
   return(stat_table)
 }
 main(2012)
+@
+\section{Problem 3}
+\subsection{3 A and B}
+<<cache=TRUE>>=
+set.seed(11)
+randomwalk<-function(nstep=10,start=c(0,0),fullpath=TRUE){
+  if (nstep%%1==0 & nstep>0){
+    randomvector=sample(c("Up","Down","Right","Left"),nstep,replace=TRUE)
+    Updown=rep(0,nstep)
+    Updown[randomvector=="Up"]=1
+    Updown[randomvector=="Down"]=-1
+    leftright=rep(0,nstep)
+    leftright[randomvector=="Right"]=1
+    leftright[randomvector=="Left"]=-1
+    xcoordinates<-cumsum(leftright)+start[1]
+    ycoordinates<-cumsum(Updown)+start[2]
+    finalpos<-c(xcoordinates[nstep],ycoordinates[nstep])
+    finalpath<-cbind(xcoordinates,ycoordinates)
+    finalpath<-rbind(start,finalpath)
+    rownames(finalpath)<-NULL
+    if(fullpath==FALSE){
+      return(finalpos)
+    }
+    else{
+      return(finalpath)
+    }
+  }
+  else{
+    if(nstep%%1!=0){
+      stop("Your input should be an integer")
+    }
+    if(nstep<=0){
+      stop("Your input should be positive")
+    }
+    else{
+      stop("Your input should be a positive integer")
+    }
+  }
+}
+randomwalk(10,fullpath=TRUE)
+a<-randomwalk(20.5)
+b<-randomwalk(-10)
+@
+Then I use a class constructor to create a class called rw, with two attributes in the object, path and final position.
+\newline
+<<cache=TRUE>>=
+walk <- function(nstep=10,start=c(0,0)){
+  # constructor for 'rw' class
+  path<-randomwalk(nstep,fullpath=TRUE)
+  finalpos<-path[nrow(path),]
+  obj <- list(finalpos=finalpos,path=path)
+  class(obj) <- 'rw' 
+  return(obj)
+}
+walk1<-walk(50)
+attributes(walk1)
+@
+Here I constructed a print and plot method for rw class. In particular, for the plot part, I use the red point (square) to denote the starting point, and use the triangle point to denote the end point. The detail of code explanation is along side with the code. By doing these, I can use plot() and print() directly to rw class objects.
+\newline
+<<cache=TRUE>>=
+print.rw<-function(obj){
+  cat("The starting point is:", toString(obj$path[1,]),"\n")
+  cat("The end point is: ", toString(obj$path[nrow(obj$path),]))
+}
+print(walk1)
+
+plot.rw<-function(obj){
+## This step presets an empty plot for future usage.
+  plot(0,type="n",xlab="xcoordinate",ylab="ycoordinate",main="Random Walk Plot",
+       xlim=range(obj$path[,1]),ylim=range(obj$path[,2]))
+  lines(obj$path[,1],obj$path[,2])
+  points(cbind(obj$path[1,1],obj$path[1,2]),col="red",pch=23)
+  points(cbind(obj$path[nrow(obj$path),1],obj$path[nrow(obj$path),2]),col="blue",pch=24)
+}
+plot(walk1)
+@
+In this section I created a replacement method start and an operator method to find the ith step. I notice that for the start part, we have to minus the orginal starting point coordinates, so that these operations can be done multiple times.
+\newline
+<<cache=TRUE>>=
+`start<-` <- function(object ,...) UseMethod("start<-");
+
+`start<-.rw` <- function(obj, value){
+  obj$path[,1]=obj$path[,1]+value[1]-obj$path[1,1]
+  obj$path[,2]=obj$path[,2]+value[2]-obj$path[1,2]
+  return(obj)
+}
+start(walk1)<-c(5,7)
+##Print first ten rows of object path for illustration
+walk1$path[1:10,]
+
+'[.rw'<-function(object,i){
+  obj<-object$path
+  class(obj)<-"matrix"
+  return(obj[i+1,])
+}
+walk1[3]
 @
 \end{document}
