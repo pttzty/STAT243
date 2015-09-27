@@ -2,19 +2,6 @@ library(XML)
 library(RCurl)
 library(curl)
 library(stringr)
-##A With Vice President
-# transcript_url<-"http://www.debates.org/index.php?page=debate-transcripts"
-# transcript_html<-getURLContent(transcript_url)
-# alllinks<-unique(getHTMLLinks(transcript_url))
-# debate_html<-strsplit(transcript_html,"<li>")[[1]]
-# debate_html<-debate_html[grep("Transcript? </a>",debate_html)]
-# debate_select<-debate_html[grep("1996|2000|2004|2008|2012",debate_html)]
-# select_html<-str_replace_all(debate_select,".*http","http")
-# select_html<-str_replace_all(select_html,"\\\">.*","")
-# select_html<-str_replace_all(select_html,"\\n.*","")
-# #print(debate_html)
-# str_extract(debate_select,"(September|October) \\d+(,|\\.) \\d{4}")
-
 ##A
 new_html<-htmlParse("http://www.debates.org/index.php?page=debate-transcripts")
 ##First observe that the text part of the website starts from <p>
@@ -38,46 +25,85 @@ select_url<-function(year){
 }
 
 
-##B
-speech_data<-htmlParse(select_url(2012))
-## By inspecting the Xpath Code of the element in Chrome.
-text_data<-xpathSApply(speech_data,"//p/text()",xmlValue)
-##Good Look
-cat(paste(text_data,collapse="\n\n"))
-
-##B
-text_data<-as.list(text_data)
-# z <- lapply(text_data
-#        ,function(x){y <-as.character(str_match(string=x, pattern="^[A-Z]+:"))
-#                     return(y)})
-# z
-speakernames <- as.list(str_replace(as.list(str_match(text_data,"^[A-Z]+:")),":",replacement=""))
-##Set up
-finalframe<-cbind(speakernames,text_data)
-
-speakerposition<-1
-for (i in 2:nrow(finalframe)){
-  if(is.na(finalframe[i,1])==FALSE){
-    speakerposition<-i
+##B and C;
+textbody<-function(year){
+  speech_data<-htmlParse(select_url(year))
+  ## By inspecting the Xpath Code of the element in Chrome.
+  ## //p/text() will extract the body of the article
+  text_data<-xpathSApply(speech_data,"//p/text()",xmlValue)
+  ##Good Look
+  # cat(paste(text_data,collapse="\n\n"))
+  #This step concatenate all text together, and I extract all speaker names
+  ## Then I split the original text by "Speakernames:", and throw out the first elemment of the list
+  ## After that I created a data frame with names on the left and text on the right
+  text_data<-paste(text_data,collapse=" ")
+  snames<-as.list(str_replace(unlist(str_extract_all(text_data,"[A-Z]+:")),":",replacement=""))
+  text_data<-str_split(text_data,pattern = "[A-Z]+: ")
+  text_data<-unlist(text_data)[-1]
+  finalframe<-data.frame(cbind(unlist(snames),text_data),stringsAsFactors = FALSE)
+  index=1
+  index_vec<-c(1)
+  for(i in 2:nrow(finalframe)){
+    if(finalframe[i,1]!=finalframe[i-1,1]){
+      index=i
+      index_vec<-c(index_vec,index)
+    }
+    if(finalframe[i,1]==finalframe[i-1,1]){
+      finalframe[index,2]=paste(finalframe[index,2],finalframe[i,2],collapse="\n")
+    }
   }
-  if(is.na(finalframe[i,1])){
-    finalframe[speakerposition,2]<-paste(finalframe[speakerposition,2],finalframe[i,2],collapse="\n\n")
-  }
+  finalframe<-finalframe[index_vec,]
+  rownames(finalframe)<-NULL
+  ##This line of code eliminates the non-spoken text. Such as Laughter...
+  ## I am, However, willing to retain those information. Thus I place the new text in a new column
+  ## By saying that, I will compute the # of tags for each candidate in future steps.
+  finalframe[,3]<-str_replace_all(finalframe[,2],"\\(LAUGHTER\\)|\\(APPLAUSE\\)|\\(CROSSTALK\\)","")
+  colnames(finalframe)<-c("speakernames","raw text","spoken text")
+  return(finalframe)
 }
-##Eliminate those name columns with NA, because the cotent has been concatenated. 
-finalframe<-finalframe[is.na(finalframe[,1])==FALSE,]
 
-##This step strip out the useless Laughter Applause and crosstalk tags from the speech.
-## Also strip out the speaker name at the very top of each paragraph
-finalframe[,2]<-str_replace_all(finalframe[,2],"\\(LAUGHTER\\)|\\(APPLAUSE\\)|\\(CROSSTALK\\)|^[A-Z]+:","")
-finalframe[,2]<-str_replace_all(finalframe[,2],"^ ","")
-##Split into sentences and words
-sentencesplit<-str_split(finalframe[,2],pattern = "\\. |\\? |\\, |\\ -- |\\.\\.\\. ")
-# b<-str_split(a,pattern=" ")
-wordsplit<-lapply(sentencesplit,function(x){return(str_split(x,pattern="\\ "))})
-##Count total number of words and characters
-finalframe<-cbind(finalframe,wordsplit)
+# text_data<-as.list(text_data)
+# speakernames <- as.list(str_replace(as.list(str_match(text_data,"^[A-Z]+:")),":",replacement=""))
+# ##Set up
+# finalframe<-cbind(speakernames,text_data)
+# 
+# ###concatenate the content of NA to the person.
+# 
+# speakerposition<-1
+# for (i in 2:nrow(finalframe)){
+#   if(is.na(finalframe[i,1])==FALSE){
+#     speakerposition<-i
+#   }
+#   if(is.na(finalframe[i,1])){
+#     finalframe[speakerposition,2]<-paste(finalframe[speakerposition,2],finalframe[i,2],collapse="\n\n")
+#   }
+# }
+# ##Eliminate those name columns with NA, because the cotent has been concatenated. 
+# finalframe<-finalframe[is.na(finalframe[,1])==FALSE,]
 
+
+# finalframe[,2]<-str_replace_all(finalframe[,2],"\\(LAUGHTER\\)|\\(APPLAUSE\\)|\\(CROSSTALK\\)|^[A-Z]+:","")
+# finalframe[,2]<-str_replace_all(finalframe[,2],"^ ","")
+
+
+###D This step will extract sentences and words;
+split_word_sentence<-function(finalframe){
+  sentencesplit<-str_split(finalframe[,3],pattern = "\\. |\\? |\\.\\.\\. ")
+  withoutpunc<-str_replace_all(finalframe[,3],pattern="\\.|\\,|\\.\\.\\.|\\?|\\!|\\ --|\\ (?![A-Za-z0-9])","")
+  # wordsplit<-lapply(withoutpunc,function(x){return(str_split(x,pattern="\\ "))})
+  wordsplit<-str_split(withoutpunc,pattern = "\\ ")
+  
+#   sentencesplit<-str_split(finalframe[,3],pattern = "\\. |\\? |\\, |\\ -- |\\.\\.\\. ")
+#   # b<-str_split(a,pattern=" ")
+#   wordsplit<-lapply(sentencesplit,function(x){return(str_split(x,pattern="\\ "))})
+  
+  finalframe<-cbind(finalframe,wordsplit,sentencesplit)
+  colnames(finalframe)<-c("speakernames","raw text","spoken text","wordsplit","sentencesplit")
+  return(finalframe)
+}
+
+
+##Part E and F, and Also count the number of tags
 ###Write a function that will return the data required for a speech.
 Candidate_stat<-function(finalframe){
   ##Store speaker names to a vector
@@ -87,12 +113,14 @@ Candidate_stat<-function(finalframe){
   colnames(candidate_data)<-c("wordcount","charachtercount","averagelength",
                               "I","we","American","democracy","republic",
                               "Democrat","Republican","freedom",
-                              "war","God","God Bless","Jesus")
+                              "war","God","GodBless","Jesus")
   rownames(candidate_data)<-speaker_unique
   ##Now all splitting in word is in the third column of the finalframe
   for (i in 1:length(speaker_unique)){
     name=speaker_unique[[i]]
-    word_candidate=unlist(finalframe[finalframe[,1]==name,3])
+    word_candidate=unlist(finalframe[finalframe[,1]==name,4])
+    text_candidate=unlist(finalframe[finalframe[,1]==name,3])
+    
     candidate_data$wordcount[i]<-length(word_candidate)
     candidate_data$charachtercount[i]<-sum(nchar(word_candidate))
     candidate_data$averagelength[i]=candidate_data$charachtercount[i]/candidate_data$wordcount[i]
@@ -104,6 +132,11 @@ Candidate_stat<-function(finalframe){
     candidate_data$Democrat[i]<-sum(str_count(word_candidate,"Democrats?[ic]?\\b"))
     candidate_data$Republican[i]<-sum(str_count(word_candidate,"Republicans?"))
     candidate_data$freedom[i]<-sum(str_count(word_candidate,"free[dom]?"))
+    candidate_data$war[i]<-sum(str_count(word_candidate,"[W|w]ars?"))
+    #### Since God bless has two words, we need to use main text to count.
+    candidate_data$God[i]<-sum(str_count(text_candidate,"[G|g]od (?!bless)"))
+    candidate_data$GodBless[i]<-sum(str_count(text_candidate,"[G|g]od bless"))
+    candidate_data$Jesus[i]<-sum(str_count(word_candidate,"Jesus|Christs\\b|Christians?"))
   }
   return(candidate_data)
 }
