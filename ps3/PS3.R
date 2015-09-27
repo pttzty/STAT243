@@ -40,6 +40,7 @@ textbody<-function(year){
   snames<-as.list(str_replace(unlist(str_extract_all(text_data,"[A-Z]+:")),":",replacement=""))
   text_data<-str_split(text_data,pattern = "[A-Z]+: ")
   text_data<-unlist(text_data)[-1]
+  
   finalframe<-data.frame(cbind(unlist(snames),text_data),stringsAsFactors = FALSE)
   index=1
   index_vec<-c(1)
@@ -97,8 +98,10 @@ split_word_sentence<-function(finalframe){
 #   # b<-str_split(a,pattern=" ")
 #   wordsplit<-lapply(sentencesplit,function(x){return(str_split(x,pattern="\\ "))})
   
-  finalframe<-cbind(finalframe,wordsplit,sentencesplit)
-  colnames(finalframe)<-c("speakernames","raw text","spoken text","wordsplit","sentencesplit")
+  newframe<-cbind(as.list(finalframe[,1]),as.list(finalframe[,2]),as.list(finalframe[,3]),wordsplit)
+  finalframe<-newframe
+  colnames(finalframe)<-c("speakernames","raw text","spoken text","wordsplit")
+  finalframe<-data.frame(finalframe,stringsAsFactors = FALSE)
   return(finalframe)
 }
 
@@ -107,19 +110,22 @@ split_word_sentence<-function(finalframe){
 ###Write a function that will return the data required for a speech.
 Candidate_stat<-function(finalframe){
   ##Store speaker names to a vector
-  speaker_unique<-unique(finalframe[finalframe[,1]!="SPEAKERS",1])
+  speaker_unique<-unlist(unique(finalframe[finalframe[,1]!="SPEAKERS",1]))
   ##Create an empty data frame to store number of words, average length, etc.
-  candidate_data<-data.frame(matrix(numeric(0),ncol=15,nrow=3),stringsAsFactors=FALSE)
+  candidate_data<-data.frame(matrix(numeric(0),ncol=17,nrow=3),stringsAsFactors=FALSE)
   colnames(candidate_data)<-c("wordcount","charachtercount","averagelength",
                               "I","we","American","democracy","republic",
                               "Democrat","Republican","freedom",
-                              "war","God","GodBless","Jesus")
+                              "war","God","GodBless","Jesus","Laughter","Applause")
   rownames(candidate_data)<-speaker_unique
   ##Now all splitting in word is in the third column of the finalframe
+  ## for loop looping from 1 to 3, namely moderator and each candidate
   for (i in 1:length(speaker_unique)){
     name=speaker_unique[[i]]
     word_candidate=unlist(finalframe[finalframe[,1]==name,4])
     text_candidate=unlist(finalframe[finalframe[,1]==name,3])
+##In order to count Laughters and Applause tags
+    raw_candidate=unlist(finalframe[finalframe[,1]==name,2])
     
     candidate_data$wordcount[i]<-length(word_candidate)
     candidate_data$charachtercount[i]<-sum(nchar(word_candidate))
@@ -129,7 +135,7 @@ Candidate_stat<-function(finalframe){
     candidate_data$we[i]<-sum(str_count(word_candidate,"We\\b|we\\b"))
     candidate_data$democracy[i]<-sum(str_count(word_candidate,"democracy\\b|democratic\\b"))
     candidate_data$republic[i]<-sum(str_count(word_candidate,"republic\\b|Republic\\b"))
-    candidate_data$Democrat[i]<-sum(str_count(word_candidate,"Democrats?[ic]?\\b"))
+    candidate_data$Democrat[i]<-sum(str_count(word_candidate,"Democrats?[ic]?"))
     candidate_data$Republican[i]<-sum(str_count(word_candidate,"Republicans?"))
     candidate_data$freedom[i]<-sum(str_count(word_candidate,"free[dom]?"))
     candidate_data$war[i]<-sum(str_count(word_candidate,"[W|w]ars?"))
@@ -137,6 +143,17 @@ Candidate_stat<-function(finalframe){
     candidate_data$God[i]<-sum(str_count(text_candidate,"[G|g]od (?!bless)"))
     candidate_data$GodBless[i]<-sum(str_count(text_candidate,"[G|g]od bless"))
     candidate_data$Jesus[i]<-sum(str_count(word_candidate,"Jesus|Christs\\b|Christians?"))
+    ###This is one of part c in the problem.
+    candidate_data$Laughter[i]<-sum(str_count(raw_candidate,"\\(LAUGHTER\\)"))
+    candidate_data$Applause[i]<-sum(str_count(raw_candidate,"\\(APPLAUSE\\)"))
   }
   return(candidate_data)
+}
+
+###Combine all functions together, the stat table is the table of statistics
+main<-function(year){
+  finalframe<-textbody(year)
+  aftersplit<-split_word_sentence(finalframe)
+  stat_table<-Candidate_stat(aftersplit)
+  return(stat_table)
 }
