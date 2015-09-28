@@ -104,22 +104,18 @@ textbody<-function(year){
   ##This line of code eliminates the non-spoken text. Such as Laughter...
   ## I am, However, willing to retain those information. Thus I place the new text in a new column
   ## By saying that, I will compute the # of tags for each candidate in future steps.
-  finalframe[,3]<-str_replace_all(finalframe[,2],"\\(LAUGHTER\\)|\\(APPLAUSE\\)|\\(CROSSTALK\\)","")
+  finalframe[,3]<-str_replace_all(finalframe[,2],
+                                  "\\(LAUGHTER\\)|\\(APPLAUSE\\)|\\(Applause\\)|\\(Laughter\\)|\\(CROSSTALK\\)","")
   colnames(finalframe)<-c("speakernames","raw text","spoken text")
   return(finalframe)
 }
 
 @
 \subsection{2D}
-In this section, I took the URLink as an input and returned a dataframe for future use.\\
-This dataframe contained speakernames in the first column: like "OBAMA" "ROMNEY" "OBAMA",\\
-with no neighborhood the same (means no "OBAMA" "OBAMA"). In the second column, it's the raw text with laugther and applause tags. In the third column, I name it spoken text because it does not contain non-spoken texts. \\
-Notice that I did eliminate the speaker names at first of some paragraphs, and to combine neighbor chunks by the same person to one chunk, I used a for loop. (I know groupby option in dplyr is a good option, but I am running a ubuntu with R 3.0, which did not support dplyr)
-By doing this, I can easily take subset of each candidate by data frame operations.
+In this section, I created a function called splitword to split the text into words and add it as the fourth column in my dataframe. Notice that I will illustrate the sentence split at the end but not the function. For simplicity, I will just show the first few words Obama said in 2012 to show that my split is useful.
 \newline
 <<cache=TRUE>>=
-split_word_sentence<-function(finalframe){
-  sentencesplit<-str_split(finalframe[,3],pattern = "\\. |\\? |\\.\\.\\. ")
+split_word<-function(finalframe){
   withoutpunc<-str_replace_all(finalframe[,3],pattern="\\.|\\,|\\.\\.\\.|\\?|\\!|\\ --|\\ (?![A-Za-z0-9])","")
   # wordsplit<-lapply(withoutpunc,function(x){return(str_split(x,pattern="\\ "))})
   wordsplit<-str_split(withoutpunc,pattern = "\\ ")
@@ -129,9 +125,19 @@ split_word_sentence<-function(finalframe){
   finalframe<-data.frame(finalframe,stringsAsFactors = FALSE)
   return(finalframe)
 }
+example<-textbody(2012)
+example<-split_word(example)
+head(unlist(example[example[,1]=="OBAMA",4]))
+example[,3]<-str_replace_all(example[,3],"Mr\\.","Mr")
+example[,3]<-str_replace_all(example[,3],"Dr\\.","Dr")
+##Now sentencesplit contains unlist(sentencesplit) contains sentence as element,
+##and the output is too long to print, even with head.
+sentencesplit<-str_split(example[,3],pattern = "\\. |\\! |\\? |\\.\\.\\. ")
+###For illustration, pick up random range of sentencesplit to check, the whole output is too long.
+unlist(sentencesplit)[36:38]
 @
 \subsection{2E and 2F}
-In this section, I made a function that would take finalframe from last step, and count the words of each candidate and other basic statistics like number of laughters and applauses. To achieve this I start with an empty data frame with all row names and columnames set, then I insert the result to these dataframe by counting the number of occurence using regular expressions.
+In this section, I made a function that would take finalframe from last step, and count the words of each candidate and other basic statistics like number of laughters and applauses. To achieve this I start with an empty data frame with all row names and columnames set, then I insert the result to these dataframe by counting the number of occurence using regular expressions. Notice that it's still complex for me to use lapply here because I use regular expression over different columns of my dataframe.
 \newline
 <<>>=
 ##Part E and F, and Also count the number of tags
@@ -172,8 +178,8 @@ Candidate_stat<-function(finalframe){
     candidate_data$GodBless[i]<-sum(str_count(text_candidate,"[G|g]od bless"))
     candidate_data$Jesus[i]<-sum(str_count(word_candidate,"Jesus|Christs\\b|Christians?"))
     ###This is one of part c in the problem.
-    candidate_data$Laughter[i]<-sum(str_count(raw_candidate,"\\(LAUGHTER\\)"))
-    candidate_data$Applause[i]<-sum(str_count(raw_candidate,"\\(APPLAUSE\\)"))
+    candidate_data$Laughter[i]<-sum(str_count(raw_candidate,"\\(LAUGHTER\\)|\\(Laughter\\)"))
+    candidate_data$Applause[i]<-sum(str_count(raw_candidate,"\\(APPLAUSE\\)|\\(Applause\\)"))
   }
   return(candidate_data)
 }
@@ -181,7 +187,7 @@ Candidate_stat<-function(finalframe){
 ###Combine all functions together, the stat table is the table of statistics
 main<-function(year){
   finalframe<-textbody(year)
-  aftersplit<-split_word_sentence(finalframe)
+  aftersplit<-split_word(finalframe)
   stat_table<-Candidate_stat(aftersplit)
   rownames(stat_table)<-paste(rownames(stat_table),year)
   return(stat_table)
@@ -189,7 +195,8 @@ main<-function(year){
 result<-lapply(c(2012,2008,2004,2000,1996),main)
 result
 @
-From the table, we have obeserved that 2008 is an unusual case that every part of the script has been counted twice, so does the statistics. Namely, all statistics are even numbers, and it's unlucky that html is not structured. Besides, We can observe that "war" was mentioned significantly more times in 2004, and probably because the happening of the Iraq war. Bush also mentioned freedom a lot in 2004, which also relates to the Iraq War. Besides in 2012, Obama got more laughters.
+From the table, we have obeserved that 2008 is an unusual case that every part of the script has been counted twice, so does the statistics. Namely, all statistics are even numbers, and it's unlucky that html is not structured. Besides, We can observe that "war" was mentioned significantly more times in 2004, and probably because the happening of the Iraq war. Bush also mentioned freedom a lot in 2004, which also relates to the Iraq War. Besides in 2012, Obama got more laughters. 
+Other interesting fact is about the average word length, candidates typically had a average word length of 4.5, which is less than the average word length in typical English documents (5.1), which probably because people tend to say easier words than writing.
 \section{Problem 3}
 \subsection{3 A and B}
 Here I created a function called random walk without using for loops. One thing need to mention is that this function handles gracefully with wrong inputs such as nonintegers, negative numbers, etc.
@@ -234,7 +241,6 @@ randomwalk(10,fullpath=TRUE)
 ##Illustration for wrong input
 a<-randomwalk(20.5)
 b<-randomwalk(-10)
-c<-randomwalk("somesothers")
 @
 Then I use a class constructor to create a class called rw, with two attributes in the object, path and final position.
 \newline

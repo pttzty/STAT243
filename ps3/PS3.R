@@ -88,8 +88,7 @@ textbody<-function(year){
 
 
 ###D This step will extract sentences and words;
-split_word_sentence<-function(finalframe){
-  sentencesplit<-str_split(finalframe[,3],pattern = "\\. |\\? |\\.\\.\\. ")
+split_word<-function(finalframe){
   withoutpunc<-str_replace_all(finalframe[,3],pattern="\\.|\\,|\\.\\.\\.|\\?|\\!|\\ --|\\ (?![A-Za-z0-9])","")
   # wordsplit<-lapply(withoutpunc,function(x){return(str_split(x,pattern="\\ "))})
   wordsplit<-str_split(withoutpunc,pattern = "\\ ")
@@ -153,7 +152,7 @@ Candidate_stat<-function(finalframe){
 ###Combine all functions together, the stat table is the table of statistics
 main<-function(year){
   finalframe<-textbody(year)
-  aftersplit<-split_word_sentence(finalframe)
+  aftersplit<-split_word(finalframe)
   stat_table<-Candidate_stat(aftersplit)
   rownames(stat_table)<-paste(rownames(stat_table),year)
   return(stat_table)
