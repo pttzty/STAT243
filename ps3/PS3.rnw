@@ -123,11 +123,6 @@ split_word_sentence<-function(finalframe){
   withoutpunc<-str_replace_all(finalframe[,3],pattern="\\.|\\,|\\.\\.\\.|\\?|\\!|\\ --|\\ (?![A-Za-z0-9])","")
   # wordsplit<-lapply(withoutpunc,function(x){return(str_split(x,pattern="\\ "))})
   wordsplit<-str_split(withoutpunc,pattern = "\\ ")
-  
-#   sentencesplit<-str_split(finalframe[,3],pattern = "\\. |\\? |\\, |\\ -- |\\.\\.\\. ")
-#   # b<-str_split(a,pattern=" ")
-#   wordsplit<-lapply(sentencesplit,function(x){return(str_split(x,pattern="\\ "))})
-  
   newframe<-cbind(as.list(finalframe[,1]),as.list(finalframe[,2]),as.list(finalframe[,3]),wordsplit)
   finalframe<-newframe
   colnames(finalframe)<-c("speakernames","raw text","spoken text","wordsplit")
@@ -165,7 +160,7 @@ Candidate_stat<-function(finalframe){
     candidate_data$averagelength[i]=candidate_data$charachtercount[i]/candidate_data$wordcount[i]
     candidate_data$American[i]<-sum(str_count(word_candidate,"American?"))
     candidate_data$I[i]<-sum(str_count(word_candidate,"I\\b"))
-    candidate_data$we[i]<-sum(str_count(word_candidate,"We\\b|we\\b"))
+    candidate_data$we[i]<-sum(str_count(word_candidate,"[W|w]e[^a-z]"))
     candidate_data$democracy[i]<-sum(str_count(word_candidate,"democracy\\b|democratic\\b"))
     candidate_data$republic[i]<-sum(str_count(word_candidate,"republic\\b|Republic\\b"))
     candidate_data$Democrat[i]<-sum(str_count(word_candidate,"Democrats?[ic]?"))
@@ -188,13 +183,11 @@ main<-function(year){
   finalframe<-textbody(year)
   aftersplit<-split_word_sentence(finalframe)
   stat_table<-Candidate_stat(aftersplit)
+  rownames(stat_table)<-paste(rownames(stat_table),year)
   return(stat_table)
 }
-main(2012)
-main(2008)
-main(2004)
-main(2000)
-main(1996)
+result<-lapply(c(2012,2008,2004,2000,1996),main)
+result
 @
 From the table, we have obeserved that 2008 is an unusual case that every part of the script has been counted twice, so does the statistics. Namely, all statistics are even numbers, and it's unlucky that html is not structured. Besides, We can observe that "war" was mentioned significantly more times in 2004, and probably because the happening of the Iraq war. Bush also mentioned freedom a lot in 2004, which also relates to the Iraq War. Besides in 2012, Obama got more laughters.
 \section{Problem 3}

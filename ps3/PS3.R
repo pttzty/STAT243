@@ -132,7 +132,7 @@ Candidate_stat<-function(finalframe){
     candidate_data$averagelength[i]=candidate_data$charachtercount[i]/candidate_data$wordcount[i]
     candidate_data$American[i]<-sum(str_count(word_candidate,"American?"))
     candidate_data$I[i]<-sum(str_count(word_candidate,"I\\b"))
-    candidate_data$we[i]<-sum(str_count(word_candidate,"We\\b|we\\b"))
+    candidate_data$we[i]<-sum(str_count(word_candidate,"[W|w]e[^a-z]"))
     candidate_data$democracy[i]<-sum(str_count(word_candidate,"democracy\\b|democratic\\b"))
     candidate_data$republic[i]<-sum(str_count(word_candidate,"republic\\b|Republic\\b"))
     candidate_data$Democrat[i]<-sum(str_count(word_candidate,"Democrats?[ic]?"))
@@ -155,5 +155,7 @@ main<-function(year){
   finalframe<-textbody(year)
   aftersplit<-split_word_sentence(finalframe)
   stat_table<-Candidate_stat(aftersplit)
+  rownames(stat_table)<-paste(rownames(stat_table),year)
   return(stat_table)
 }
+a<-lapply(c(2012,2008,2004,2000,1996),main)
