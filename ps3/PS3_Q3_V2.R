@@ -44,7 +44,7 @@ walk <- function(nstep=10,start=c(0,0)){
   class(obj) <- 'rw' 
   return(obj)
 }
-walk1<-walk(50)
+walk1<-walk(10000)
 attributes(walk1)
 print.rw<-function(obj){
   cat("The starting point is:", toString(obj$path[1,]),"\n")

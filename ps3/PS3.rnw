@@ -21,7 +21,11 @@ opts_chunk$set(fig.width = 5, fig.height = 5)
 \author{Tianyi Zhang}
 
 \maketitle
-
+\section{Problem1}
+The article I chose to read was "Best Practices for Scientific Computing" by Greg Wilson. 
+I have a question about automating repetitive tasks in scientific computing. Generally, writing functions in R will automate repetitive tasks. However, in some cases, some tasks are similar in parts instead of purely repeating. In this scenario, do we make all efforts to spend more time writing a function as general (have quiet more inputs) as possible so that it would be suitable for all similar tasks? Another choice is to write similar functions to similar tasks which will decrease the reproducibility, but spend little time on single project. Moreover, the latter approach also corresponds to the advice that optimizing codes after it works correctly.
+\newline
+My second approach is related to the version control software Git. I found that it was a disaster to use Git and Dropbox (or other sync tools) simutaneously, if I had two computers working on the same project. The dropbox will sync first and then I use git pull there would be a conflict message. 
 \section{Problem2}
 \subsection{2A}
 \begin{paragraph}
@@ -132,6 +136,8 @@ split_word_sentence<-function(finalframe){
 }
 @
 \subsection{2E and 2F}
+In this section, I made a function that would take finalframe from last step, and count the words of each candidate and other basic statistics like number of laughters and applauses. To achieve this I start with an empty data frame with all row names and columnames set, then I insert the result to these dataframe by counting the number of occurence using regular expressions.
+\newline
 <<>>=
 ##Part E and F, and Also count the number of tags
 ###Write a function that will return the data required for a speech.
@@ -185,13 +191,20 @@ main<-function(year){
   return(stat_table)
 }
 main(2012)
+main(2008)
+main(2004)
+main(2000)
+main(1996)
 @
+From the table, we have obeserved that 2008 is an unusual case that every part of the script has been counted twice, so does the statistics. Namely, all statistics are even numbers, and it's unlucky that html is not structured. Besides, We can observe that "war" was mentioned significantly more times in 2004, and probably because the happening of the Iraq war. Bush also mentioned freedom a lot in 2004, which also relates to the Iraq War. Besides in 2012, Obama got more laughters.
 \section{Problem 3}
 \subsection{3 A and B}
+Here I created a function called random walk without using for loops. One thing need to mention is that this function handles gracefully with wrong inputs such as nonintegers, negative numbers, etc.
+\newline
 <<cache=TRUE>>=
 set.seed(11)
 randomwalk<-function(nstep=10,start=c(0,0),fullpath=TRUE){
-  if (nstep%%1==0 & nstep>0){
+  if (is.numeric(nstep) & nstep%%1==0 & nstep>0){
     randomvector=sample(c("Up","Down","Right","Left"),nstep,replace=TRUE)
     Updown=rep(0,nstep)
     Updown[randomvector=="Up"]=1
@@ -213,10 +226,10 @@ randomwalk<-function(nstep=10,start=c(0,0),fullpath=TRUE){
     }
   }
   else{
-    if(nstep%%1!=0){
+    if(is.numeric(nstep) & nstep%%1!=0){
       stop("Your input should be an integer")
     }
-    if(nstep<=0){
+    if(is.numeric(nstep) & nstep<=0){
       stop("Your input should be positive")
     }
     else{
@@ -225,8 +238,10 @@ randomwalk<-function(nstep=10,start=c(0,0),fullpath=TRUE){
   }
 }
 randomwalk(10,fullpath=TRUE)
+##Illustration for wrong input
 a<-randomwalk(20.5)
 b<-randomwalk(-10)
+c<-randomwalk("somesothers")
 @
 Then I use a class constructor to create a class called rw, with two attributes in the object, path and final position.
 \newline
