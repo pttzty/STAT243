@@ -112,29 +112,30 @@ textbody<-function(year){
 
 @
 \subsection{2D}
-In this section, I created a function called splitword to split the text into words and add it as the fourth column in my dataframe. Notice that I will illustrate the sentence split at the end but not the function. For simplicity, I will just show the first few words Obama said in 2012 to show that my split is useful.
+In this section, I created a function called splitword to split the text into words and add it as the fourth column in my dataframe, the sentence split is in the fifth column. For simplicity, I will just show the first few words and first few sentences Obama said in 2012 to show that my split is useful. 
 \newline
 <<cache=TRUE>>=
 split_word<-function(finalframe){
   withoutpunc<-str_replace_all(finalframe[,3],pattern="\\.|\\,|\\.\\.\\.|\\?|\\!|\\ --|\\ (?![A-Za-z0-9])","")
   # wordsplit<-lapply(withoutpunc,function(x){return(str_split(x,pattern="\\ "))})
   wordsplit<-str_split(withoutpunc,pattern = "\\ ")
-  newframe<-cbind(as.list(finalframe[,1]),as.list(finalframe[,2]),as.list(finalframe[,3]),wordsplit)
+  finalframe[,3]<-str_replace_all(finalframe[,3],"Mr\\.","Mr")
+  finalframe[,3]<-str_replace_all(finalframe[,3],"Dr\\.","Dr")
+  sentencesplit<-str_split(finalframe[,3],pattern = "\\. |\\! |\\? |\\.\\.\\. ")
+  newframe<-cbind(as.list(finalframe[,1]),as.list(finalframe[,2]),
+                  as.list(finalframe[,3]),wordsplit,sentencesplit)
   finalframe<-newframe
-  colnames(finalframe)<-c("speakernames","raw text","spoken text","wordsplit")
+  colnames(finalframe)<-c("speakernames","raw text","spoken text","wordsplit","sentencesplit")
   finalframe<-data.frame(finalframe,stringsAsFactors = FALSE)
   return(finalframe)
 }
 example<-textbody(2012)
 example<-split_word(example)
+##First few words or sentences OBAMA said in 2012 to
+## show that I am able to correspond words to candidates
 head(unlist(example[example[,1]=="OBAMA",4]))
-example[,3]<-str_replace_all(example[,3],"Mr\\.","Mr")
-example[,3]<-str_replace_all(example[,3],"Dr\\.","Dr")
-##Now sentencesplit contains unlist(sentencesplit) contains sentence as element,
-##and the output is too long to print, even with head.
-sentencesplit<-str_split(example[,3],pattern = "\\. |\\! |\\? |\\.\\.\\. ")
-###For illustration, pick up random range of sentencesplit to check, the whole output is too long.
-unlist(sentencesplit)[36:38]
+head(unlist(example[example[,1]=="OBAMA",5]))
+
 @
 \subsection{2E and 2F}
 In this section, I made a function that would take finalframe from last step, and count the words of each candidate and other basic statistics like number of laughters and applauses. To achieve this I start with an empty data frame with all row names and columnames set, then I insert the result to these dataframe by counting the number of occurence using regular expressions. Notice that it's still complex for me to use lapply here because I use regular expression over different columns of my dataframe.
