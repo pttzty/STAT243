@@ -115,10 +115,15 @@ Candidate_stat<-function(finalframe){
   colnames(candidate_data)<-c("wordcount","charachtercount","averagelength",
                               "I","we","American","democracy","republic",
                               "Democrat","Republican","freedom",
-                              "war","God","GodBless","Jesus","Laughter","Applause")
+                              "war","Jesus","God","GodBless","Laughter","Applause")
   rownames(candidate_data)<-speaker_unique
   ##Now all splitting in word is in the third column of the finalframe
   ## for loop looping from 1 to 3, namely moderator and each candidate
+  ## The regexvector contains the basic regular expressions for use, some special ones 
+  ## will be dealt with seperately.
+  regexvector<-c("I[^a-z]","[W|w]e[^a-z]","American?","democracy\\b|democratic\\b",
+                 "[R|r]epublic\\b","Democrats?[ic]?","Republicans?",
+                 "[F|f]ree[dom]?","[W|w]ars?","Jesus|Christs\\b|Christians?")
   for (i in 1:length(speaker_unique)){
     name=speaker_unique[[i]]
     word_candidate=unlist(finalframe[finalframe[,1]==name,4])
@@ -129,19 +134,13 @@ Candidate_stat<-function(finalframe){
     candidate_data$wordcount[i]<-length(word_candidate)
     candidate_data$charachtercount[i]<-sum(nchar(word_candidate))
     candidate_data$averagelength[i]=candidate_data$charachtercount[i]/candidate_data$wordcount[i]
-    candidate_data$American[i]<-sum(str_count(word_candidate,"American?"))
-    candidate_data$I[i]<-sum(str_count(word_candidate,"I\\b"))
-    candidate_data$we[i]<-sum(str_count(word_candidate,"[W|w]e[^a-z]"))
-    candidate_data$democracy[i]<-sum(str_count(word_candidate,"democracy\\b|democratic\\b"))
-    candidate_data$republic[i]<-sum(str_count(word_candidate,"republic\\b|Republic\\b"))
-    candidate_data$Democrat[i]<-sum(str_count(word_candidate,"Democrats?[ic]?"))
-    candidate_data$Republican[i]<-sum(str_count(word_candidate,"Republicans?"))
-    candidate_data$freedom[i]<-sum(str_count(word_candidate,"free[dom]?"))
-    candidate_data$war[i]<-sum(str_count(word_candidate,"[W|w]ars?"))
-    #### Since God bless has two words, we need to use main text to count.
+    for (k in 1:length(regexvector)){
+      candidate_data[i,k+3]<-sum(str_count(word_candidate,pattern=regexvector[k]))
+    }
+    #### Since God bless has two words, we need to use main text instead of words to count
+    #### so I wrote it out of the previous loop. 
     candidate_data$God[i]<-sum(str_count(text_candidate,"[G|g]od (?!bless)"))
     candidate_data$GodBless[i]<-sum(str_count(text_candidate,"[G|g]od bless"))
-    candidate_data$Jesus[i]<-sum(str_count(word_candidate,"Jesus|Christs\\b|Christians?"))
     ###This is one of part c in the problem.
     candidate_data$Laughter[i]<-sum(str_count(raw_candidate,"\\(LAUGHTER\\)"))
     candidate_data$Applause[i]<-sum(str_count(raw_candidate,"\\(APPLAUSE\\)"))
