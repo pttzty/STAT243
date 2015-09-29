@@ -83,6 +83,7 @@ textbody<-function(year){
   ## Then I split the original text by "Speakernames:", and throw out the first elemment of the list
   ## After that I created a data frame with names on the left and text on the right
   text_data<-paste(text_data,collapse=" ")
+  text_data<-gsub(pattern="\"","",text_data)
   snames<-as.list(str_replace(unlist(str_extract_all(text_data,"[A-Z]+:")),":",replacement=""))
   text_data<-str_split(text_data,pattern = "[A-Z]+: ")
   text_data<-unlist(text_data)[-1]
