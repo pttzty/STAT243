@@ -25,7 +25,7 @@ opts_chunk$set(fig.width = 5, fig.height = 5)
 The article I chose to read was "Best Practices for Scientific Computing" by Greg Wilson. 
 I have a question about automating repetitive tasks in scientific computing. Generally, writing functions in R will automate repetitive tasks. However, in some cases, some tasks are similar in parts instead of purely repeating. In this scenario, do we make all efforts to spend more time writing a function as general (have quiet more inputs) as possible so that it would be suitable for all similar tasks? Another choice is to write similar functions to similar tasks which will decrease the reproducibility, but spend little time on single project. Moreover, the latter approach also corresponds to the advice that optimizing codes after it works correctly.
 \newline
-My second approach is related to the version control software Git. I found that it was a disaster to use Git and Dropbox (or other sync tools) simutaneously, if I had two computers working on the same project. The dropbox will sync first and then I use git pull there would be a conflict message. 
+My second problem is related to the version control software Git. I found that it was a disaster to use Git and Dropbox (or other sync tools) simutaneously, if I had two computers working on the same project. The dropbox will sync first and then I use git pull there would be a conflict message. 
 \section{Problem2}
 \subsection{2A}
 \begin{paragraph}
@@ -195,8 +195,8 @@ main<-function(year){
 result<-lapply(c(2012,2008,2004,2000,1996),main)
 result
 @
-From the table, we have obeserved that 2008 is an unusual case that every part of the script has been counted twice, so does the statistics. Namely, all statistics are even numbers, and it's unlucky that html is not structured. Besides, We can observe that "war" was mentioned significantly more times in 2004, and probably because the happening of the Iraq war. Bush also mentioned freedom a lot in 2004, which also relates to the Iraq War. Besides in 2012, Obama got more laughters. 
-Other interesting fact is about the average word length, candidates typically had a average word length of 4.5, which is less than the average word length in typical English documents (5.1), which probably because people tend to say easier and shorter words than writing.
+From the table, we have obeserved that 2008 is an unusual case that every part of the script has been counted twice, so the statistics do. Namely, all statistics are even numbers, and it's unlucky that html is not structured. Besides, We can observe that "war" was mentioned significantly more times in 2004, and probably because the happening of the Iraq war. Bush also mentioned freedom a lot in 2004, which also related to the Iraq War. Besides in 2012, Obama got more laughters. 
+Another interesting fact is about the average word length, candidates typically had a average word length of 4.5, which is less than the average word length in typical English documents (5.1), which probably because people tend to say easier and shorter words than writing.
 \section{Problem 3}
 \subsection{3 A and B}
 Here I created a function called random walk without using for loops. One thing need to mention is that this function handles gracefully with wrong inputs such as nonintegers, negative numbers, etc.
