@@ -158,7 +158,7 @@ Candidate_stat<-function(finalframe){
   ## for loop looping from 1 to 3, namely moderator and each candidate
   ## The regexvector contains the basic regular expressions for use, some special ones 
   ## will be dealt with seperately.
-  regexvector<-c("I[^a-z]","[W|w]e[^a-z]","American?","democracy\\b|democratic\\b",
+  regexvector<-c("I$","^[W|w]e$","American?","democracy\\b|democratic\\b",
                  "[R|r]epublic\\b","Democrats?[ic]?","Republicans?",
                  "[F|f]ree[dom]?","[W|w]ars?","Jesus|Christs\\b|Christians?")
   for (i in 1:length(speaker_unique)){
