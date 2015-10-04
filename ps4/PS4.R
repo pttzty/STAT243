@@ -1,15 +1,15 @@
-##Problem 1
-# set.seed(0) 
-# runif(1)
-# save(.Random.seed, file = 'tmp.Rda')
-# # runif(1)
-# # # load('tmp.Rda') 
-# # # runif(1)
-# tmp = function() { 
-#   load('tmp.Rda') 
-#   runif(1)
-# } 
-# tmp()
+#Problem 1
+set.seed(0) 
+runif(1)
+save(.Random.seed, file = 'tmp.Rda')
+runif(1)
+load('tmp.Rda') 
+runif(1)
+tmp = function() { 
+  load('tmp.Rda',env = .GlobalEnv) 
+  runif(1)
+} 
+tmp()
 
 ###Problem 2
 eval_deno<-function(n=10,p=0.3,phi=0.5){
@@ -44,7 +44,13 @@ vec_deno<-function(n=10,p=0.3,phi=0.5){
 mixedMember<-load("mixedMember.Rda")
 ##3A
 resultA<-sapply(1:length(IDsA),sumA<-function(x) sum(muA[IDsA[[x]]]*wgtsA[[x]]))
-resultB<-sapply(1:100000,sumB<-function(x) sum(muB[IDsB[[x]]]*wgtsB[[x]]))
+resultB<-sapply(1:length(IDsB),sumB<-function(x) sum(muB[IDsB[[x]]]*wgtsB[[x]]))
+##3B
+lik <- matrix(as.numeric(0), nr = length(wgtsA), nc = max(sapply(wgtsA,length)))
+for(j in 1:length(wgtsA)) lik[j,][1:length(wgtsA[[j]])] <- wgtsA[[j]]
+# sapply(1:nrow(lik),trans<-function(i) lik[i,][1:length(wgtsA[[i]])]<-wgtsA[[i]])
+# IDAmatrix<-matrix(as.numeric(0), nr = length(IDsA), nc = max(sapply(IDsA,length)))
+# for(j in 1:length(IDsA)) IDAmatrix[j,][1:length(IDsA[[j]])] <- IDsA[[j]]
 ##
 ##Problem4
 library(pryr)
