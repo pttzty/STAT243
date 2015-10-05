@@ -43,14 +43,29 @@ vec_deno<-function(n=10,p=0.3,phi=0.5){
 ##problem3
 mixedMember<-load("mixedMember.Rda")
 ##3A
-resultA<-sapply(1:length(IDsA),sumA<-function(x) sum(muA[IDsA[[x]]]*wgtsA[[x]]))
-resultB<-sapply(1:length(IDsB),sumB<-function(x) sum(muB[IDsB[[x]]]*wgtsB[[x]]))
+microbenchmark(result_A_A<-sapply(1:length(IDsA),sumA<-function(x) sum(muA[IDsA[[x]]]*wgtsA[[x]])))
+head(result_A_A)
+summary(result_A_A)
+microbenchmark(result_A_B<-sapply(1:length(IDsB),sumB<-function(x) sum(muB[IDsB[[x]]]*wgtsB[[x]])))
+head(result_A_B)
+summary(result_A_B)
 ##3B
-lik <- matrix(as.numeric(0), nr = length(wgtsA), nc = max(sapply(wgtsA,length)))
-for(j in 1:length(wgtsA)) lik[j,][1:length(wgtsA[[j]])] <- wgtsA[[j]]
-# sapply(1:nrow(lik),trans<-function(i) lik[i,][1:length(wgtsA[[i]])]<-wgtsA[[i]])
-# IDAmatrix<-matrix(as.numeric(0), nr = length(IDsA), nc = max(sapply(IDsA,length)))
-# for(j in 1:length(IDsA)) IDAmatrix[j,][1:length(IDsA[[j]])] <- IDsA[[j]]
+# ##3C
+# lik <- matrix(as.numeric(0), nr = length(wgtsB), nc = max(sapply(wgtsB,length)))
+# for(j in 1:length(wgtsB)) lik[j,][1:length(wgtsB[[j]])] <- wgtsB[[j]]
+# # sapply(1:nrow(lik),trans<-function(i) lik[i,][1:length(wgtsA[[i]])]<-wgtsA[[i]])
+# IDBmatrix<-matrix(as.numeric(0), nr = length(IDsB), nc = max(sapply(IDsB,length)))
+# for(j in 1:length(IDsB)) IDBmatrix[j,][1:length(IDsB[[j]])] <- IDsB[[j]]
+
+##3C
+##Create an empty matrix to place weight elements, which is the "linear
+## transformation" of muB in computation
+weightframe <- matrix(0, nr=length(wgtsB), nc=length(muB))
+for (i in 1:nrow(weightframe)) {
+  weightframe[i, IDsB[[i]]] <- wgtsB[[i]]
+}
+microbenchmark(result_C<-as.vector(weightframe%*%muB))
+
 ##
 ##Problem4
 library(pryr)

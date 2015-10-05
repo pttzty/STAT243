@@ -44,7 +44,8 @@ tmp = function() {
 tmp()
 .Random.seed[2]
 @
-\section{Question2}
+\section{Problem 2}
+\subsection{2A}
 First we evaluate the denominator in this section.We need to take log to 
 each component of the denominator to avoid calculation for big factorials. For example, 2000 choose 100 will produce the factorial of 2000 in the numerator, which will be regarded as infinity in R. Also I found that there is a part in the denominator that is the inverse of the other, so we can compute it first and then combine terms. Notice that we need to regard k to be zero and n as special cases.
 \newline
@@ -67,7 +68,8 @@ eval_deno<-function(n=10,p=0.3,phi=0.5){
   return(deno)
 }
 @
-In this section, we will eliminate any loops or apply functions in our function. Thus we set up a vector from 1 to n minus one, and do the arithematic operations toward this vector.
+\subsection{2B}
+In this section, we will eliminate any loops or apply functions in our function. Thus we set up a vector from 1 to n minus one, and do the arithematic operations toward this vector. We found that it took significantly less time after vectorizing (about 50 times faster compared to non-vectorize time spent). It took about 400 microseconds to finish the case when n=2000 in a macbook Air, and notice that the result varied significantly between different machines. This same chunk of code for n=2000 only spent 200 microseconds on a newest Macbook Pro machine.
 \newline
 <<cache=TRUE>>=
 vec_deno<-function(n=10,p=0.3,phi=0.5){
@@ -82,12 +84,37 @@ vec_deno<-function(n=10,p=0.3,phi=0.5){
 microbenchmark(eval_deno(10),eval_deno(2000),
                vec_deno(10),vec_deno(2000))
 @
+\section{problem 3}
+\subsection{3A}
+<<>>=
+mixedMember<-load("mixedMember.Rda")
+microbenchmark(result_A_A<-sapply(1:length(IDsA),
+                                  sumA<-function(x) sum(muA[IDsA[[x]]]*wgtsA[[x]])))
+head(result_A_A)
+summary(result_A_A)
+microbenchmark(result_A_B<-sapply(1:length(IDsB),
+                                  sumB<-function(x) sum(muB[IDsB[[x]]]*wgtsB[[x]])))
+head(result_A_B)
+summary(result_A_B)
+@
+\subsection{3C}
+<<>>=
+##Create an empty matrix to place weight elements, which is the "linear
+## transformation" of muB in computation
+weightframe <- matrix(0, nr=length(wgtsB), nc=length(muB))
+for (i in 1:nrow(weightframe)) {
+  weightframe[i, IDsB[[i]]] <- wgtsB[[i]]
+}
+microbenchmark(result_C<-as.vector(weightframe%*%muB))
+head(result_C)
+summary(result_C)
+@
 \section{problem 4}
 <<>>=
-rm(list=ls())
-x1<-rnorm(1000000)
-x2<-rnorm(1000000)
-x3<-rnorm(1000000)
-y<-rnorm(1000000)
+# rm(list=ls())
+# x1<-rnorm(1000000)
+# x2<-rnorm(1000000)
+# x3<-rnorm(1000000)
+# y<-rnorm(1000000)
 @
 \end{document}
