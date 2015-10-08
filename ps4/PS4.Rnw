@@ -13,7 +13,7 @@ opts_chunk$set(fig.width = 5, fig.height = 5)
 @ 
 \begin{document}
 \section{Question1}
-\subsection{1 A}
+\subsection{1A}
 <<>>=
 set.seed(0) 
 runif(1)
@@ -29,7 +29,7 @@ tmp()
 debug(tmp)
 .Random.seed[2]
 @
-\subsection{1 B}
+\subsection{1B}
 <<>>=
 set.seed(0) 
 runif(1)
@@ -82,22 +82,33 @@ vec_deno<-function(n=10,p=0.3,phi=0.5){
   return(deno)
 }
 microbenchmark(eval_deno(10),eval_deno(2000),
-               vec_deno(10),vec_deno(2000))
+               vec_deno(10),vec_deno(2000),times=20L)
 @
 \section{problem 3}
 \subsection{3A}
+The sapply approach is straightforward calculation. I print the head of the object I returned to confirm the final results.
 <<>>=
 mixedMember<-load("mixedMember.Rda")
-microbenchmark(result_A_A<-sapply(1:length(IDsA),
-                                  sumA<-function(x) sum(muA[IDsA[[x]]]*wgtsA[[x]])))
+result_A_A<-sapply(1:length(IDsA),sumA<-function(x) sum(muA[IDsA[[x]]]*wgtsA[[x]]))
 head(result_A_A)
-summary(result_A_A)
-microbenchmark(result_A_B<-sapply(1:length(IDsB),
-                                  sumB<-function(x) sum(muB[IDsB[[x]]]*wgtsB[[x]])))
+result_A_B<-sapply(1:length(IDsB),sumB<-function(x) sum(muB[IDsB[[x]]]*wgtsB[[x]]))
 head(result_A_B)
-summary(result_A_B)
+@
+\subsection{3B}
+Here I observed that a vector can take a matrix as a subset. Thus I creates a matrix with 1001 as the default element. That is becuase I want to add a zero at the end of muA in the final step so that I won't worry about the problem of the length of the vector after "subseting". 
+<<>>=
+wgA_mat <- matrix(0, nc = length(wgtsA), nr = max(sapply(wgtsA,length)))
+for(j in 1:length(wgtsA)) wgA_mat[,j][1:length(wgtsA[[j]])] <- wgtsA[[j]]
+
+IDAmatrix<-matrix(max(unlist(IDsA))+1, nc = length(IDsA), nr = max(sapply(IDsA,length)))
+for(i in 1:length(IDsA)) IDAmatrix[,i][1:length(IDsA[[i]])] <- IDsA[[i]]
+## Adding a zero to the end of the vector
+result_CaseA<-colSums(wgA_mat*c(muA,0)[IDAmatrix])
+head(result_CaseA)
 @
 \subsection{3C}
+Here I create an empty matrix with 10000 rows and 10 columns. It liternally subsititutes the ith row to the ith element with the ID position of weighted list. Then I perform a matrix mulitiplication that returns a vector. There is no need to take the subset of muB because the mulitiplication of zero will return zero. I print the head of the vector to confirm that the result is consisent to the result in part A. 
+\newline
 <<>>=
 ##Create an empty matrix to place weight elements, which is the "linear
 ## transformation" of muB in computation
@@ -105,16 +116,224 @@ weightframe <- matrix(0, nr=length(wgtsB), nc=length(muB))
 for (i in 1:nrow(weightframe)) {
   weightframe[i, IDsB[[i]]] <- wgtsB[[i]]
 }
-microbenchmark(result_C<-as.vector(weightframe%*%muB))
-head(result_C)
-summary(result_C)
+result_CaseB<-as.vector(weightframe%*%muB)
+head(result_CaseB)
+@
+\section{3D}
+By looking at the result from R microbenchmarking, we can observe that it takes about 300 milliseconds in average to run sapply for both CaseA and CaseB, because it essentially calls a for loop in C, which is by any means a "stepwise" calculation. However, after vectorizing the calculation for Case A and B. Case A spends about 20 milliseconds, which means about one order magnitude speed up. Case B spends about 2-3 miliseconds, which means about two order magnitude speed up.
+\newline
+<<>>=
+### Comparison for Case A by using sapply and efficient code with matrix computation
+microbenchmark(result_A_A<-sapply(1:length(IDsA)
+                                  ,sumA<-function(x) sum(muA[IDsA[[x]]]*wgtsA[[x]])),
+               result_CaseA<-colSums(wgA_mat*c(muA,0)[IDAmatrix]),times=10L)
+
+### Comparison for Case B by using sapply and efficient code, respectively.
+microbenchmark(result_A_B<-sapply(1:length(IDsB),
+                                  sumB<-function(x) sum(muB[IDsB[[x]]]*wgtsB[[x]])),
+               result_CaseB<-as.vector(weightframe%*%muB),times=10L)
 @
 \section{problem 4}
+For problem 4, because I am trying to make several print statements inside the raw code of lm function, so the code chunk for each part is fairly long. Thus I concatenate part A,B,C to one part after the result of the output.
 <<>>=
-# rm(list=ls())
-# x1<-rnorm(1000000)
-# x2<-rnorm(1000000)
-# x3<-rnorm(1000000)
-# y<-rnorm(1000000)
+library(pryr)
+rm(list=ls())
+x1<-rnorm(1000000)
+x2<-rnorm(1000000)
+x3<-rnorm(1000000)
+y<-rnorm(1000000)
+mem_used()
+
+lmrevised<-function (formula, data, subset, weights, na.action, method = "qr", 
+          model = TRUE, x = FALSE, y = FALSE, qr = TRUE, singular.ok = TRUE, 
+          contrasts = NULL, offset, ...) 
+{
+  mem1<-mem_used()
+  ret.x <- x
+  ret.y <- y
+  cl <- match.call()
+  mf <- match.call(expand.dots = FALSE)
+  m <- match(c("formula", "data", "subset", "weights", "na.action", 
+               "offset"), names(mf), 0L)
+  mf <- mf[c(1L, m)]
+  mf$drop.unused.levels <- TRUE
+  mf[[1L]] <- quote(stats::model.frame)
+  mf <- eval(mf, parent.frame())
+  print("The memroy used after mf is created")
+  print(mem_used()-mem1)
+  print("The size of mf is")
+  print(object_size(mf))
+  if (method == "model.frame") 
+    return(mf)
+  else if (method != "qr") 
+    warning(gettextf("method = '%s' is not supported. Using 'qr'", 
+                     method), domain = NA)
+  mt <- attr(mf, "terms")
+  y <- model.response(mf, "numeric")
+##
+  print(head(.Internal(inspect(y))))
+  print("The object size of y is")
+  print(object_size(y))
+  print("The object size of y names is")
+  print(object_size(attributes(y)$names))
+  print("The memroy use after y is created")
+  print(mem_used()-mem1)
+#    attributes(y)$dimnames<-NULL  
+##
+  w <- as.vector(model.weights(mf))
+  if (!is.null(w) && !is.numeric(w)) 
+    stop("'weights' must be a numeric vector")
+  offset <- as.vector(model.offset(mf))
+  if (!is.null(offset)) {
+    if (length(offset) != NROW(y)) 
+      stop(gettextf("number of offsets is %d, should equal %d (number of observations)", 
+                    length(offset), NROW(y)), domain = NA)
+  }
+  if (is.empty.model(mt)) {
+    x <- NULL
+    z <- list(coefficients = if (is.matrix(y)) matrix(, 0, 
+                                                      3) else numeric(), residuals = y, fitted.values = 0 * 
+                y, weights = w, rank = 0L, df.residual = if (!is.null(w)) sum(w != 
+                                                                                0) else if (is.matrix(y)) nrow(y) else length(y))
+    if (!is.null(offset)) {
+      z$fitted.values <- offset
+      z$residuals <- y - offset
+    }
+  }
+  else {
+    print("The memory use after x is created")
+    print(mem_used()-mem1)
+    x <- model.matrix(mt, mf, contrasts)
+    #########
+    print(head(.Internal(inspect(x))))
+    print("The size of x becomes")
+    print(object.size(x))
+    print("The size of dimnames of x is")
+    print(object_size(attributes(x)$dimnames))
+#    attributes(x)$dimnames<-NULL
+    #########
+    z <- if (is.null(w)){
+      print("The memory used at the point lm.fit is called")
+      print(mem_used()-mem1)
+      lm.fit(x, y, offset = offset, singular.ok = singular.ok, 
+             ...)}
+    else lm.wfit(x, y, w, offset = offset, singular.ok = singular.ok, 
+                 ...)
+  }
+  class(z) <- c(if (is.matrix(y)) "mlm", "lm")
+  z$na.action <- attr(mf, "na.action")
+  z$offset <- offset
+  z$contrasts <- attr(x, "contrasts")
+  z$xlevels <- .getXlevels(mt, mf)
+  z$call <- cl
+  z$terms <- mt
+  if (model) 
+    z$model <- mf
+  if (ret.x) 
+    z$x <- x
+  if (ret.y) 
+    z$y <- y
+  if (!qr) 
+    z$qr <- NULL
+  z
+}
+
+@
+\subsection{4A}
+By adding the print memory statement in the raw code of the lm function, we can inspect the memory used at the point that lm.fit is called by adding a print statement right before the lm.fit is called. We can inspect that there is approximately 152 Mb used in the function before the lm.fit called. To eliminate the effect of memory use outside the function, I record the memory usage at the beginning of the function then do the substraction every time I want to record the memory usage. 
+\subsection{4B}
+Question 1: What objects have used the major memory.\\
+Here I need to figure out where is the 152 MB (156MB if running in Rnw compared to just in R) memory usage distributed before the call of the function lm.fit. The way I approach it is to print the size suspicious large objects as well as print the usage of memory after each line. I found that the major use of memory was from the creation of mf, y, and x.\\
+mf has the size of 32 MB, and y has the size of 64 MB, while x has the size of 88 MB. However it adds up to 184 MB instead of 152 MB, this is a contradiction that I would like to report here. I even find that the additional 16MB memory use occured in the creation of y, and 48MB less memory use in creation of x.
+\newline
+Question2: Why are some vectors and matrices take more than 8 bytes per number memory?\\
+We know y is a vector with length 1 million, which should take 8MB, however it takes 56MB. The similar condition happens in x, where x has the object size of 88MB, while 400 million numbers should take 8bytes*400 million=32MB.\\
+By the command internal inspect, I found that the computer also stores the names of y as an attribute in the RAM, as it's shown in the code output. By printing the object size of name attributes of y, we found that names occupied 56 MB in the memory.\\
+Similarly,by internal insepction, I found that x has a large attribute \textbf{dimnames} with size 56MB, which makes it seem that it's not "8 bytes per number".
+\newline
+<<>>=
+model1<-lmrevised(y~x1+x2+x3)
+@
+\subsection{4C}
+If I am rewriting the lm function, I would make the names of those attributes to be NULL and look at the memory use at the point lm.fit is called. (This time I hide the lm function code because it is too long.) I made my new function name to be lmnew. Now it only takes about 80MB before the call of lm.fit.
+\newline
+<<echo=FALSE,cache=TRUE>>=
+lmnew<-function (formula, data, subset, weights, na.action, method = "qr", 
+          model = TRUE, x = FALSE, y = FALSE, qr = TRUE, singular.ok = TRUE, 
+          contrasts = NULL, offset, ...) 
+{
+  mem1<-mem_used()
+  ret.x <- x
+  ret.y <- y
+  cl <- match.call()
+  mf <- match.call(expand.dots = FALSE)
+  m <- match(c("formula", "data", "subset", "weights", "na.action", 
+               "offset"), names(mf), 0L)
+  mf <- mf[c(1L, m)]
+  mf$drop.unused.levels <- TRUE
+  mf[[1L]] <- quote(stats::model.frame)
+  mf <- eval(mf, parent.frame())
+  if (method == "model.frame") 
+    return(mf)
+  else if (method != "qr") 
+    warning(gettextf("method = '%s' is not supported. Using 'qr'", 
+                     method), domain = NA)
+  mt <- attr(mf, "terms")
+  y <- model.response(mf, "numeric")
+
+  attributes(y)$dimnames<-NULL  
+  w <- as.vector(model.weights(mf))
+  if (!is.null(w) && !is.numeric(w)) 
+    stop("'weights' must be a numeric vector")
+  offset <- as.vector(model.offset(mf))
+  if (!is.null(offset)) {
+    if (length(offset) != NROW(y)) 
+      stop(gettextf("number of offsets is %d, should equal %d (number of observations)", 
+                    length(offset), NROW(y)), domain = NA)
+  }
+  if (is.empty.model(mt)) {
+    x <- NULL
+    z <- list(coefficients = if (is.matrix(y)) matrix(, 0, 
+                                                      3) else numeric(), residuals = y, fitted.values = 0 * 
+                y, weights = w, rank = 0L, df.residual = if (!is.null(w)) sum(w != 
+                                                                                0) else if (is.matrix(y)) nrow(y) else length(y))
+    if (!is.null(offset)) {
+      z$fitted.values <- offset
+      z$residuals <- y - offset
+    }
+  }
+  else {
+    x <- model.matrix(mt, mf, contrasts)
+    attributes(x)$dimnames<-NULL
+    #########
+    z <- if (is.null(w)){
+      print("The memory used at the point lm.fit is called")
+      print(mem_used()-mem1)
+      lm.fit(x, y, offset = offset, singular.ok = singular.ok, 
+             ...)}
+    else lm.wfit(x, y, w, offset = offset, singular.ok = singular.ok, 
+                 ...)
+  }
+  class(z) <- c(if (is.matrix(y)) "mlm", "lm")
+  z$na.action <- attr(mf, "na.action")
+  z$offset <- offset
+  z$contrasts <- attr(x, "contrasts")
+  z$xlevels <- .getXlevels(mt, mf)
+  z$call <- cl
+  z$terms <- mt
+  if (model) 
+    z$model <- mf
+  if (ret.x) 
+    z$x <- x
+  if (ret.y) 
+    z$y <- y
+  if (!qr) 
+    z$qr <- NULL
+  z
+}
+@
+<<>>=
+model2<-lmnew(y~x1+x2+x3)
+sapply(model2,object.size)
 @
 \end{document}
