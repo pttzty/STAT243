@@ -12,8 +12,14 @@ opts_chunk$set(fig.width = 5, fig.height = 5)
 
 @ 
 \begin{document}
+\title{STAT243 Problem set3}
+\author{Tianyi Zhang}
+
+\maketitle
 \section{Question1}
 \subsection{1A}
+For the debugging of part A, I add several print statements to record the change of random.seed to see if the position is updated. By using the interactive debugging tool browser function, I use the where function in the pryr pakcage to see that the random.seed is from the <environment: 0x7f98237ade70> but not the global environment. I also find that after runif, the position of randomseed has not get updated, because we did not load from the global environment. Notice that because the browser function requires the interactive interface, so I just wrote the code but disable the running.
+\newline
 <<>>=
 set.seed(0) 
 runif(1)
@@ -22,14 +28,21 @@ runif(1)
 load('tmp.Rda') 
 runif(1)
 tmp = function() { 
-  load('tmp.Rda') 
-  runif(1)
+  load('tmp.Rda')
+  print("The position of randomseed after loading the tmp file")
+  print(.Random.seed[2])
+#   browser()
+#   where(".Random.seed")
+  print(runif(1))
+  print("The position of randomseed after calling runif(1)")
+  print(.Random.seed[2])
 } 
 tmp()
-debug(tmp)
-.Random.seed[2]
+
 @
 \subsection{1B}
+To revise the function, I add a statement of env=.Globalenv to aviod loading from the last parent frame. Here when I run runif(1), it will return me the correct value, and random.seed will get update within the function.
+\newline
 <<>>=
 set.seed(0) 
 runif(1)
@@ -37,12 +50,17 @@ save(.Random.seed, file = 'tmp.Rda')
 runif(1)
 load('tmp.Rda') 
 runif(1)
-tmp = function() { 
+tmp = function() {
+######change here
   load('tmp.Rda',env = .GlobalEnv) 
-  runif(1)
+  print("The position of randomseed after loading the tmp file")
+  print(.Random.seed[2])
+#   browser()
+  print(runif(1))
+  print("The position of randomseed after calling runif(1)")
+  print(.Random.seed[2])
 } 
 tmp()
-.Random.seed[2]
 @
 \section{Problem 2}
 \subsection{2A}
@@ -50,7 +68,6 @@ First we evaluate the denominator in this section.We need to take log to
 each component of the denominator to avoid calculation for big factorials. For example, 2000 choose 100 will produce the factorial of 2000 in the numerator, which will be regarded as infinity in R. Also I found that there is a part in the denominator that is the inverse of the other, so we can compute it first and then combine terms. Notice that we need to regard k to be zero and n as special cases.
 \newline
 <<cache=TRUE>>=
-###Problem 2
 eval_deno<-function(n=10,p=0.3,phi=0.5){
   compute_deno<-function(k){
     part_two<-k*log(k)+(n-k)*log(n-k)-n*log(n)
@@ -84,6 +101,23 @@ vec_deno<-function(n=10,p=0.3,phi=0.5){
 microbenchmark(eval_deno(10),eval_deno(2000),
                vec_deno(10),vec_deno(2000),times=20L)
 @
+\subsection{3C}
+After using Rprof() to detect which line has used significantly more time, I found that lchoose takes the majority use of time. Thus I revised the lchoose to \textbf{lfactorial}, then the time use has been significantly reduced. It took me about 300 milliseconds to run n=2000 in a macbook Air, and the same chunk of code lasts 150 milliseconds in a more powerful Ubuntu machine.
+<<>>=
+vec_revise<-function(n=10,p=0.3,phi=0.5){
+  vec<-1:(n-1)
+  part_one<-lfactorial(n)-lfactorial(vec)-lfactorial(n-vec)
+  part_two<-vec*log(vec)+(n-vec)*log(n-vec)-n*log(n)
+  main_log=part_one+(1-phi)*part_two+vec*phi*log(p)+(n-vec)*phi*log(1-p)
+  first_ele<-n*phi*log(1-p)
+  last_ele<-n*phi*log(p)
+  deno<-sum(exp(main_log))+exp(first_ele)+exp(last_ele)
+  return(deno)
+}
+vec_revise(2000)
+#####Improvement here
+microbenchmark(vec_revise(2000),vec_deno(2000))
+@
 \section{problem 3}
 \subsection{3A}
 The sapply approach is straightforward calculation. I print the head of the object I returned to confirm the final results.
@@ -95,15 +129,15 @@ result_A_B<-sapply(1:length(IDsB),sumB<-function(x) sum(muB[IDsB[[x]]]*wgtsB[[x]
 head(result_A_B)
 @
 \subsection{3B}
-Here I observed that a vector can take a matrix as a subset. Thus I creates a matrix with 1001 as the default element. That is becuase I want to add a zero at the end of muA in the final step so that I won't worry about the problem of the length of the vector after "subseting". 
+Here I observed that a vector can take a matrix as a subset. Thus I creates an ID matrix with NA as the default element, with 100000 columns and 8 rows. I will use this ID matrix to perform subset of the muA in the computation steps, we will not worry about NA values in the matrix, because we will eventually set na.rm=TRUE in the option in the colsums step to eliminate the effect of NA. muA[IDAmatrix] is a vector with length 800000, where I can perform elementwise multiplication with the weight matrix which has 800000 elemtents, where I also create a weight matrix with 100000 columns and 8 rows.
 <<>>=
 wgA_mat <- matrix(0, nc = length(wgtsA), nr = max(sapply(wgtsA,length)))
 for(j in 1:length(wgtsA)) wgA_mat[,j][1:length(wgtsA[[j]])] <- wgtsA[[j]]
 
-IDAmatrix<-matrix(max(unlist(IDsA))+1, nc = length(IDsA), nr = max(sapply(IDsA,length)))
+IDAmatrix<-matrix(NA, nc = length(IDsA), nr = max(sapply(IDsA,length)))
 for(i in 1:length(IDsA)) IDAmatrix[,i][1:length(IDsA[[i]])] <- IDsA[[i]]
 ## Adding a zero to the end of the vector
-result_CaseA<-colSums(wgA_mat*c(muA,0)[IDAmatrix])
+result_CaseA<-colSums(wgA_mat*muA[IDAmatrix],na.rm=TRUE)
 head(result_CaseA)
 @
 \subsection{3C}
@@ -119,14 +153,14 @@ for (i in 1:nrow(weightframe)) {
 result_CaseB<-as.vector(weightframe%*%muB)
 head(result_CaseB)
 @
-\section{3D}
-By looking at the result from R microbenchmarking, we can observe that it takes about 300 milliseconds in average to run sapply for both CaseA and CaseB, because it essentially calls a for loop in C, which is by any means a "stepwise" calculation. However, after vectorizing the calculation for Case A and B. Case A spends about 20 milliseconds, which means about one order magnitude speed up. Case B spends about 2-3 miliseconds, which means about two order magnitude speed up.
+\subsection{3D}
+By looking at the result from R microbenchmarking, we can observe that it takes about 300 milliseconds in average to run sapply for both CaseA and CaseB, because it essentially calls a for loop in C, which is by any means a "stepwise" calculation. However, after vectorizing the calculation for Case A and B. Case A spends about 15 milliseconds, which means about one order magnitude speed up. Case B spends about 2-3 miliseconds, which means about two order magnitude speed up.
 \newline
 <<>>=
 ### Comparison for Case A by using sapply and efficient code with matrix computation
 microbenchmark(result_A_A<-sapply(1:length(IDsA)
                                   ,sumA<-function(x) sum(muA[IDsA[[x]]]*wgtsA[[x]])),
-               result_CaseA<-colSums(wgA_mat*c(muA,0)[IDAmatrix]),times=10L)
+               result_CaseA<-colSums(wgA_mat*muA[IDAmatrix],na.rm=TRUE),times=10L)
 
 ### Comparison for Case B by using sapply and efficient code, respectively.
 microbenchmark(result_A_B<-sapply(1:length(IDsB),
@@ -248,8 +282,9 @@ mf has the size of 32 MB, and y has the size of 64 MB, while x has the size of 8
 \newline
 Question2: Why are some vectors and matrices take more than 8 bytes per number memory?\\
 We know y is a vector with length 1 million, which should take 8MB, however it takes 56MB. The similar condition happens in x, where x has the object size of 88MB, while 400 million numbers should take 8bytes*400 million=32MB.\\
-By the command internal inspect, I found that the computer also stores the names of y as an attribute in the RAM, as it's shown in the code output. By printing the object size of name attributes of y, we found that names occupied 56 MB in the memory.\\
-Similarly,by internal insepction, I found that x has a large attribute \textbf{dimnames} with size 56MB, which makes it seem that it's not "8 bytes per number".
+By the command internal inspect, I found that the computer also stores the \textbf{names} of y as an attribute in the RAM, as it's shown in the code output. By printing the object size of name attributes of y, we found that names occupied 56 MB in the memory.\\
+Similarly,by internal insepction, I found that x has a large attribute \textbf{dimnames} with size 56MB, which makes it seem that it's not "8 bytes per number".\\
+\textbf{From the internal inspect, I also got a rough idea why those object sizes do not add up to the total memory use up to the calling of lm.fit function, I found that the some attributes of x and y (for instance, names) share the same address in the memory, so even though the attribute for each part is large, different objects are sharing memory when they have common attributes.}
 \newline
 <<>>=
 model1<-lmrevised(y~x1+x2+x3)

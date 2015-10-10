@@ -40,6 +40,16 @@ vec_deno<-function(n=10,p=0.3,phi=0.5){
   return(deno)
 }
 
+vec_revise<-function(n=10,p=0.3,phi=0.5){
+  vec<-1:(n-1)
+  part_one<-lfactorial(n)-lfactorial(vec)-lfactorial(n-vec)
+  part_two<-vec*log(vec)+(n-vec)*log(n-vec)-n*log(n)
+  main_log=part_one+(1-phi)*part_two+vec*phi*log(p)+(n-vec)*phi*log(1-p)
+  first_ele<-n*phi*log(1-p)
+  last_ele<-n*phi*log(p)
+  deno<-sum(exp(main_log))+exp(first_ele)+exp(last_ele)
+  return(deno)
+}
 ##problem3
 mixedMember<-load("mixedMember.Rda")
 ##3A
@@ -54,10 +64,10 @@ head(result_A_B)
 wgA_mat <- matrix(0, nc = length(wgtsA), nr = max(sapply(wgtsA,length)))
 for(j in 1:length(wgtsA)) wgA_mat[,j][1:length(wgtsA[[j]])] <- wgtsA[[j]]
 
-IDAmatrix<-matrix(max(unlist(IDsA))+1, nc = length(IDsA), nr = max(sapply(IDsA,length)))
+IDAmatrix<-matrix(NA, nc = length(IDsA), nr = max(sapply(IDsA,length)))
 for(i in 1:length(IDsA)) IDAmatrix[,i][1:length(IDsA[[i]])] <- IDsA[[i]]
 
-microbenchmark(result_B<-colSums(wgA_mat*c(muA,0)[IDAmatrix]))
+microbenchmark(result_B<-colSums(wgA_mat*muA[IDAmatrix],na.rm=TRUE),times=10L)
 ##3C
 ##Create an empty matrix to place weight elements, which is the "linear
 ## transformation" of muB in computation
