@@ -101,7 +101,7 @@ vec_deno<-function(n=10,p=0.3,phi=0.5){
 microbenchmark(eval_deno(10),eval_deno(2000),
                vec_deno(10),vec_deno(2000),times=20L)
 @
-\subsection{3C}
+\subsection{2C}
 After using Rprof() to detect which line has used significantly more time, I found that lchoose takes the majority use of time. Thus I revised the lchoose to \textbf{lfactorial}, then the time use has been significantly reduced. It took me about 300 milliseconds to run n=2000 in a macbook Air, and the same chunk of code lasts 150 milliseconds in a more powerful Ubuntu machine.
 <<>>=
 vec_revise<-function(n=10,p=0.3,phi=0.5){
