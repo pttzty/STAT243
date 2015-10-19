@@ -19,29 +19,31 @@ opts_chunk$set(fig.width = 5, fig.height = 5)
 \maketitle
 \section{Problem 1}
 \subsection{1A}
-At most 16 digits accuracy stored.
+At most 16 digits accuracy are actually stored if we want to store 1+1e-12.
 <<>>=
 1+1e-12
 1+(1e-16)*10000
+1.000000000001
 @
 \subsection{1B}
-The sum() function gives a different anwser than add 1+1e-12. It has 15 digits accuracy stored.
+The sum() function gives a slightly different anwser than the result in (a). It has 16 digits of accuracy stored.
 <<>>=
 vec_R<-c(1,rep(1e-16,10000))
 sum(vec_R)
 @
 \subsection{1C}
-Python gives a different answer than R, it has 14 digtis accuracy when using the sum function.
+Python gives a different answer than R, it has 15 digtis accuracy when using the sum function.
 <<engine='python'>>=
 import numpy as np
 import decimal
 vec_python=np.array([1e-16]*(10001))
 vec_python[0]=1
-print decimal.Decimal(np.sum(vec_python))
+decimal.Decimal(np.sum(vec_python))
 
+## Decimal('1.0000000000009985345883478657924570143222808837890625')
 @
 \subsection{1D}
-In R, after I wrote a for loop to do the summation, I found that putting 1 at the \textbf{last} position of the vector will give an accurate result (The maximum digits accuracy that a computer can store, 16 digits). However, putting 1 in the first position will not give a right answer, it will simply return a 1 for the result of the summation.
+In R, after I wrote a for loop to do the summation, I found that putting 1 at the \textbf{last} position of the vector will give an accurate result (The maximum digits accuracy that a computer can store, 16 digits accuracy). However, putting 1 in the first position will not give a right answer, it will simply return a 1 for the result of the summation.
 <<>>=
 function_R<-function(vec_R){
   a=vec_R[1]
@@ -80,7 +82,7 @@ print decimal.Decimal(function_python(vec_last))
 
 @
 \subsection{1E}
-It is obvious that the sum() function \textbf{does not simply add numbers from left to right.} The following two give the same result, while adding left to right will give a different result from the for loop in 1D. Basically, sum() function is independent with the order of elements within a vector.
+It is obvious that the sum() function \textbf{does not simply add numbers from left to right.} The following two will give the accurate results, while adding left to right will give a very different result from the for loop in 1D. 
 <<>>=
 vec_first<-c(1,rep(1e-16,10000))
 vec_last<-c(rep(1e-16,10000),1)
@@ -92,7 +94,7 @@ My guess is that the sum() function does not care about the order in a vector, s
 I have searched a number of documentations stating that simply summing a sequance of n (finite) number of floating numbers has the \textbf{worst} case precision, because the error grows with n. We know the sum() function in R basically called the sum function in C, which involves so-called compensated summation method, which sometimes carry arbitrary re-ordering of the sequence.\\
 Reference: \url{http://www.drdobbs.com/floating-point-summation/184403224}
 \section{Problem 2}
-First I compared the difference in the calculation speed in the vector level, including the addition, multiplication and subsetting. Generally, if we were using double to carry the calculation, it would be faster than do it with integer, which slightly contradicts to what have been talked in class. My guess is that R tends to prevent integer overflow, and thus convert all integers to double before the calculation and then convert them back after the calculation. 
+First I compared the difference in the calculation speed in the vector level, including the addition, multiplication and subsetting. Generally, if we were using double to carry the calculation, it would be faster than do it with integer, which slightly contradicts to what have been talked in class. My guess is that R tends to prevent integer overflow, and thus convert all integers to double before the calculation and then convert them back after the calculation. In R, the largest integer representable is $2*10^9$.
 One should notice that subsetting will yield nearly the same amount of time for integers and doubles, which makes sense because the operations of subsetting do not involve the conversion between integers and double. 
 <<>>=
 options(digits=7)
