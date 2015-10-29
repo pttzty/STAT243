@@ -1,0 +1,404 @@
+\documentclass{article}
+\usepackage{geometry}
+\usepackage{url}
+\usepackage[T1]{fontenc}
+\usepackage[latin9]{inputenc}
+\geometry{verbose,tmargin=1in,bmargin=1in,lmargin=1in,rmargin=1in}
+<<setup, include=FALSE>>=
+library(knitr) # need this for opts_chunk command
+library(RSQLite)
+library(stringr)
+library(data.table)
+library(pryr)
+options(digits=22)
+opts_chunk$set(fig.width = 5, fig.height = 5)
+
+@ 
+\begin{document}
+\title{STAT243 Problem set 6}
+\author{Tianyi Zhang}
+\maketitle
+\section{Problem 1}
+First, we download the airline data from the internet using bash command wget, and extract them to 22 bzfiles.
+<<engine='bash',eval=FALSE>>=
+wget http://www.stat.berkeley.edu/share/paciorek/1987-2008.csvs.tgz
+tar -xvzf 1987-2008.csvs.tgz
+@
+After downloading the files from the Internet, I use R to write a for loop that read each year's airline data into memory and then write it into a database file connection. Notice that I only read one year file at each time and then remove it at the end of each loop, so that I will not worry about the memory usage exceeds the max usage. Also, I put the argument Append=TRUE in the dbwritetable so that it adds to the end of the previous table each time. In addition, Alternatively I could also use fread which is significantly faster than readcsv.
+\newline
+<<setupdb,eval=FALSE>>=
+filename<-"airline_data.db"
+drv<-dbDriver("SQLite")
+db<-dbConnect(drv,dbname=filename)
+initExtension(db)
+year_vec=seq(1987,2008)
+system.time(
+  for (i in year_vec){
+    bzname=paste("bunzip2 -c ",toString(i),".csv.bz2",sep="")
+    datacsv<-fread(bzname,header=TRUE,colClasses=c(rep("numeric", 8), "factor", "numeric", "factor", rep("numeric", 5),
+                                                   rep("factor", 2), rep("numeric", 4),
+                                                   "factor", rep("numeric", 6)))
+    dbWriteTable(conn=db,value=datacsv,name="year",row.names=FALSE,append=TRUE)
+    rm(datacsv)
+    print(i)
+  }
+)
+
+#     user   system  elapsed 
+# 1074.772   42.848 1121.426 
+@
+After creating the database file, I will have to look at the file size, which is \textbf{9400409088 bytes (Approximately 9.4G)}. I also use several SQL commands to check the number of rows in the database, and if the database looks ok. 
+\newline
+<<sanity_check, cache=TRUE,eval=FALSE>>=
+drv<-dbDriver("SQLite")
+db<-dbConnect(drv,dbname="airline_data.db")
+dbListTables(db)
+file.size("airline_data.db")
+
+## 9400409088 bytes
+### Check number of rows (Sanity Check)
+dbGetQuery(db,"select count(*) from year where Year=2008")
+
+#   count(*)
+# 1  7009728
+@
+\newpage
+\section{Problem 2}
+\subsection{SQLPART}
+This question asks us to do the same task in SQLite and Spark. To count, I use the "method of indicator", which adds 1 when the condition is satisifed and adds zero when it is not. Here I show the head of the table I extract from the dataset. It took me about 30 mins to get this table, and notice that there is a lot of variation in speed. Also, the top 10 and 50 for each categories are reported as below.
+\newline
+<<SQLpart1,eval=FALSE>>=
+initExtension(db)
+### Create a view with no NA in the DepDelay column
+Delay_noNA<-dbSendQuery(db,"create view Delay_noNA as select * from year where DepDelay!='NA'")
+##Count number of delay more than 30, 60, 180
+a<-dbSendQuery(db,"create view sample_stat as select UniqueCarrier, Origin, Dest,
+               Month, DayOfWeek, FLOOR(CRSDepTime/100) as hour,
+               sum(case when DepDelay>30 then 1 else 0 end)*1.0/count(*) as prop_30,
+               sum(case when DepDelay>60 then 1 else 0 end)*1.0/count(*) as prop_60,
+               sum(case when DepDelay>180 then 1 else 0 end)*1.0/count(*) as prop_180,
+               count(DepDelay) as Time_Delay from Delay_noNA GROUP BY UniqueCarrier, 
+               Origin, Dest, Month, DayOfWeek, hour")
+result<-"select * from sample_stat where Time_Delay>=150 order by prop_30 desc"
+system.time(b<-dbGetQuery(db,result))
+
+##     user   system  elapsed 
+## 720.744   57.040 3606.932 
+
+head(b)
+#    UniqueCarrier Origin Dest Month DayOfWeek hour   prop_30   prop_60
+# 1            WN    DAL  HOU     6         5   20 0.4125000 0.1750000
+# 2            WN    HOU  DAL     2         5   19 0.4039735 0.1192053
+# 3            WN    DAL  HOU     4         5   20 0.3800000 0.2066667
+# 4            WN    DAL  HOU     6         5   21 0.3750000 0.1447368
+# 5            WN    HOU  DAL     6         5   19 0.3680982 0.1533742
+#       prop_180 Time_Delay
+# 1 0.000000000        160
+# 2 0.006622517        151
+# 3 0.020000000        150
+# 4 0.000000000        152
+# 5 0.000000000        163
+@
+Now We explore whether adding an index will speed up the query process in R, because we are quering on those fields, so our index should be created on those fields. One thing need to mention is that we first need to transform the column CRSDepTime to integer so that we can group, this may need update command in SQL. The other thing is that we cannot create index on a view (virtual table), and thus we have to explicitly create the index on the original table year but not a view. After adding index, the process speeds up significantly (about an order, 200 seconds compared to 2000 seconds). However, the time spent on creating the key should not be ignored because it took even longer time than setting up the statistics table.
+<<SQLpart2,eval=FALSE>>=
+## First add a column of integer hours
+system.time(
+Update_hour<-dbSendQuery(db,"Update year set CRSDepTime=FLOOR(CRSDepTime/100)")
+)
+###Create an index, time spent is also recorded
+system.time(
+index_Q<-dbSendQuery(db,"create INDEX Unique_Index ON year (UniqueCarrier, Origin,
+                     Dest, Month, DayofWeek, CRSDepTime)")
+)
+##  user  system elapsed 
+## 504.168  35.844 557.196
+
+## Create the table with all statistics using index method
+system.time(
+stat_index<-dbSendQuery(db,"create table stat_index as select UniqueCarrier, Origin, Dest, Month, DayOfWeek,CRSDepTime,
+                       sum(case when DepDelay>30 then 1 else 0 end)*1.0/count(*) as prop_30,
+                       sum(case when DepDelay>60 then 1 else 0 end)*1.0/count(*) as prop_60,
+                       sum(case when DepDelay>180 then 1 else 0 end)*1.0/count(*) as prop_180,
+                       count(DepDelay) as Time_Delay from year where DepDelay!='NA' GROUP BY UniqueCarrier,
+                       Origin, Dest, Month, DayOfWeek, CRSDepTime")
+)
+
+##    user  system elapsed 
+## 255.280  49.152 343.040 
+
+## Get the combination with more than 150 flights
+stat_30<-dbGetQuery(db,"select * from stat_index where Time_Delay>=150 order by prop_30 desc limit 5")
+
+#   UniqueCarrier Origin Dest Month DayOfWeek CRSDepTime   prop_30   prop_60
+# 1            WN    DAL  HOU     6         5         20 0.4125000 0.1750000
+# 2            WN    HOU  DAL     2         5         19 0.4039735 0.1192053
+# 3            WN    DAL  HOU     4         5         20 0.3800000 0.2066667
+# 4            WN    DAL  HOU     6         5         21 0.3750000 0.1447368
+# 5            WN    HOU  DAL     6         5         19 0.3680982 0.1533742
+#      prop_180 Time_Delay
+# 1 0.000000000        160
+# 2 0.006622517        151
+# 3 0.020000000        150
+# 4 0.000000000        152
+# 5 0.000000000        163
+
+stat_60<-dbGetQuery(db,"select * from stat_index where Time_Delay>=150 order by prop_60 desc limit 5")
+
+#   UniqueCarrier Origin Dest Month DayOfWeek CRSDepTime   prop_30   prop_60
+# 1            UA    LAX  SFO    12         5         11 0.3641975 0.2222222
+# 2            WN    DAL  HOU     4         5         20 0.3800000 0.2066667
+# 3            UA    LAX  SFO    10         5         16 0.3178808 0.1986755
+# 4            UA    LAX  SFO    12         5         18 0.3375000 0.1937500
+# 5            AA    ORD  LAX     1         4         0  0.2817680 0.1878453
+#     prop_180 Time_Delay
+# 1 0.00617284        162
+# 2 0.02000000        150
+# 3 0.00000000        151
+# 4 0.01250000        160
+# 5 0.03314917        181
+
+stat_180<-dbGetQuery(db,"select * from stat_index where Time_Delay>=150 order by prop_180 desc limit 5")
+
+#   UniqueCarrier Origin Dest Month DayOfWeek CRSDepTime   prop_30    prop_60
+# 1            AA    BOS  ORD    12         2         0  0.1116751 0.06598985
+# 2            AA    ORD  LGA    12         3         0  0.2033898 0.11299435
+# 3            AA    ORD  DFW     1         4         0  0.1907895 0.11184211
+# 4            AA    LGA  ORD    12         3         0  0.1027027 0.06486486
+# 5            AA    ORD  LGA     1         4         0  0.2192513 0.11229947
+#     prop_180 Time_Delay
+# 1 0.04568528        197
+# 2 0.03954802        177
+# 3 0.03947368        304
+# 4 0.03783784        185
+# 5 0.03743316        187
+@
+\subsection{Spark Part}
+First we need to setup the hadoop file system, and install numpy to the cluster in pyspark, which can basically follows the instructions in class.
+<<eval=FALSE,engine='bash'>>=
+export PATH=$PATH:/root/ephemeral-hdfs/bin/
+
+hadoop fs -mkdir /data
+hadoop fs -mkdir /data/airline
+
+df -h
+mkdir /mnt/airline
+cd /mnt/airline
+
+wget http://www.stat.berkeley.edu/share/paciorek/1987-2008.csvs.tgz
+tar -xvzf 1987-2008.csvs.tgz
+
+hadoop fs -copyFromLocal /mnt/airline/*bz2 /data/airline
+
+# check files on the HDFS, e.g.:
+hadoop fs -ls /data/airline
+
+# get numpy installed
+# there is a glitch in the EC2 setup that Spark provides -- numpy is not installed on the version of Python that Spark uses (Python 2.7). To install numpy on both the master and worker nodes, do the following as root on the master node.
+yum install -y python27-pip python27-devel
+pip-2.7 install 'numpy==1.9.2'  # 1.10.1 has an issue with a warning in median()
+/root/spark-ec2/copy-dir /usr/local/lib64/python2.7/site-packages/numpy
+
+# pyspark is in /root/spark/bin
+export PATH=${PATH}:/root/spark/bin
+# start Spark's Python interface as interactive session
+pyspark
+@
+After opening pyspark, we first filter out all NAs, and notice here DepDelay is in the 16th column, so we use 15 as to index that column.
+<<eval=FALSE,engine='python'>>=
+from operator import add
+import numpy as np
+lines = sc.textFile('/data/airline')
+
+# particularly for in-class demo - good to repartition the 3 files to more partitions
+lines = lines.repartition(96).cache()
+
+filter_NA=lines.filter(lambda line: "NA" not in line.split(",")[15])
+@
+Then I write a mapper function called computekeyvalue:
+<<eval=FALSE,engine='python'>>=
+# mapper
+def computeKeyValue(line):
+    vals = line.split(',')
+    if vals[0] == 'Year':
+        return("0",[0,0,0,0])
+    else:
+        keyVals = '-'.join([vals[x] for x in [8,16,17,1,3]])
+        keyVals = keyVals + '-' + str(int(eval(vals[5])/100))
+        cnt = np.zeros(shape=(4,))
+        cnt[3]=1
+        if eval(vals[15]) > 30:
+            cnt[0] = 1
+        if eval(vals[15]) > 60:
+            cnt[1] = 1
+        if eval(vals[15]) > 180:
+            cnt[2] = 1
+        return(keyVals, cnt)
+
+## Output is a RDD that contains many lists as its elements
+output = filter_NA.map(computeKeyValue).reduceByKey(add)
+@
+Reducer, saving files, 852 seconds:
+<<eval=FALSE,engine='python'>>=
+def computeprop(x):
+  if x[1][3]!=0:
+		prop_30=x[1][0]/x[1][3]
+		prop_60=x[1][1]/x[1][3]
+		prop_180=x[1][2]/x[1][3]
+		return(x[0],prop_30,prop_60,prop_180,x[1][3])
+	else:
+		return(x[0],0,0,0,0)
+
+stat=output.map(computeprop)
+finaloutput=stat.map(lambda line: ','.join(str(line[i]) for i in [0,1,2,3,4]))
+
+import timeit
+currenttime=timeit.default_timer()
+finaloutput.repartition(1).saveAsTextFile('/data/statistics')
+stoptime=timeit.default_timer()
+stoptime-currenttime
+### measured in seconds
+## 852.3841090202332
+@
+check if it looks ok:
+<<engine='python',eval=FALSE>>=
+hadoop fs -copyToLocal /data/statistics /mnt/airline
+cd statistics
+## The default file name stored called this
+head part-00000
+# UA-ORD-PBI-3-5-18,0.0869565217391,0.0434782608696,0.0,23.0
+# WN-MCI-ABQ-6-5-9,0.0,0.0,0.0,8.0
+# PI-TPA-DAY-1-2-19,0.111111111111,0.111111111111,0.0,9.0
+# NW-SEA-MSP-3-6-11,0.0810810810811,0.0540540540541,0.027027027027,37.0
+# OH-ATL-MHT-9-5-11,1.0,1.0,0.0,1.0
+# DL-ATL-SNA-11-4-18,0.0,0.0,0.0,24.0
+# FL-CLT-BWI-2-2-17,0.181818181818,0.181818181818,0.0,11.0
+# B6-BUF-JFK-4-3-13,0.0,0.0,0.0,9.0
+# DL-ATL-BHM-11-5-18,0.0434782608696,0.0,0.0,23.0
+# UA-TUS-PHX-1-4-22,0.0,0.0,0.0,4.0
+@
+\newpage
+\section{Problem 3}
+Here we parallel the SQL process to see if the process has been speed up. I chose the variable \textbf{"Month"} to divide my tasks, becasue one advantage is that I know the range of Month is from 1 to 12. I first try to split the SQL tasks to 4 tasks, basically one is for January, Feb, and March, and the second is for April, May, and June, etc. The parallel function I used was mclapply(), and it will basically return a list with 4 elements, where each element is a big dataframe (about one fourth of the aggreated dataset in problem2). Since each combination just has one value in month, there would not be overlapping work in those 4 different tasks. I wrote a taskfunction that takes each i carefully, and set the where statement to make sure different cores are doing different tasks (I using the paste function to modify the sql commands, so that I do not need to use a lot of if statements).\\
+Similarly, the function foreach provides same functionality.\\
+Here I observed that the \textbf{fastest method is to divide tasks by UniqueCarrier}. I use a groupby command to get all unique airline carrier names, and then divide multiple tasks by different airlines (29 tasks, because there are 29 unique carriers). It only took me \textbf{170 seconds} to finish the aggregation process, which is \textbf{2-3 times} faster than single core performance of SQL. \textbf{The reason that dividing by UniqueCarrier is faster is probably because it is the first variable in the index key, and all same carriers are sitting in the near place in the database (Not far away from each other)}. I have tried the function foreach and mclapply and they are giving similar answers.
+Thus, the anwser is yes, the process can be significantly speed up by parallelization wisely.
+\newline
+<<eval=FALSE>>=
+library(parallel) # one of the core R packages
+library(doParallel)
+library(foreach)
+library(iterators)
+######## Month Method
+taskFun_Month <- function(i){
+    Qtask<-paste("select UniqueCarrier, Origin, Dest, Month, DayOfWeek,CRSDepTime,sum(case when DepDelay>30 then 1 else 0 end)*1.0/count(*) as prop_30,sum(case when DepDelay>60 then 1 else 0 end)*1.0/count(*) as prop_60,sum(case when DepDelay>180 then 1 else 0 end)*1.0/count(*) as prop_180,count(DepDelay) as Time_Delay from year where DepDelay!='NA' and Month in ",
+                 "(",toString(3*i-2),',',toString(3*i-1),',',toString(3*i),")",
+                 " GROUP BY UniqueCarrier,Origin, Dest, Month, DayOfWeek, CRSDepTime",sep='')
+    db1<-dbConnect(drv,dbname=filename)
+    stat_1<-dbGetQuery(db1,Qtask)
+    return(stat_1)
+  }
+system.time(
+  res1 <- mclapply(1:4, taskFun_Month, mc.cores = 4) 
+)
+# user  system elapsed 
+# 2.260   0.456 353.606 
+
+#### Divide tasks by UniqueCarrier
+taskFun_Carrier <- function(i){
+  Qtask<-paste("select UniqueCarrier, Origin, Dest, Month, DayOfWeek,CRSDepTime,sum(case when DepDelay>30 then 1 else 0 end)*1.0/count(*) as prop_30,sum(case when DepDelay>60 then 1 else 0 end)*1.0/count(*) as prop_60,sum(case when DepDelay>180 then 1 else 0 end)*1.0/count(*) as prop_180,count(DepDelay) as Time_Delay from year where DepDelay!='NA' and UniqueCarrier in ",
+               "('",carrier[i],"')",
+               " GROUP BY UniqueCarrier,Origin, Dest, Month, DayOfWeek, CRSDepTime",sep='')
+  db1<-dbConnect(drv,dbname=filename)
+  stat_1<-dbGetQuery(db1,Qtask)
+  return(stat_1)
+}
+nCores <- 4
+registerDoParallel(nCores) 
+system.time(
+  out <- foreach(i = 1:length(carrier)) %dopar% {
+    cat('Starting ', i, 'th job.\n', sep = '')
+    outSub <- taskFun(i)
+    cat('Finishing ', i, 'th job.\n', sep = '')
+    outSub # this will become part of the out object
+  })
+# Starting 1th job.
+# Starting 2th job.
+# Starting 3th job.
+# Starting 4th job.
+# Finishing 3th job.
+# Starting 7th job.
+# Finishing 1th job.
+# Starting 5th job.
+# ................ #output is too long to show
+# Starting 18th job.
+# Finishing 18th job.
+# Starting 22th job.
+# Finishing 22th job.
+# Starting 26th job.
+# Finishing 26th job.
+#    user  system elapsed 
+# 270.004  25.044 172.570
+class(out)
+## [1] "list"
+# The data looks fine, it contains 29 dataframes with different airlines in each.
+out[1][[1]][1:3,]
+#   UniqueCarrier Origin Dest Month DayOfWeek CRSDepTime   prop_30   prop_60
+# 1            9E    ABE  DTW     1         1          6 0.1428571 0.1428571
+# 2            9E    ABE  DTW     1         1         12 0.2222222 0.1111111
+# 3            9E    ABE  DTW     1         1         16 0.0000000 0.0000000
+#   prop_180 Time_Delay
+# 1        0          7
+# 2        0          9
+# 3        0          7
+
+## Check the total number of rows 
+a<-sapply(out,dim)
+sum(a[1,])
+## 7495996
+
+# Similar to foreach, mcapply gives approximately similar amount of time span.
+system.time(
++   res1 <- mclapply(1:length(carrier), taskFun, mc.cores = 4) 
++ )
+#    user  system elapsed 
+# 290.716  26.716 156.231 
+@
+\newpage
+\section{Problem4}
+Here we explore whether using bash tools for preprocessing will speed up the statistics process. The columns we need for analysis could be found on dbListfields, and we save it to a text file to record the locations of the needed columns. Then we use the bash tool to uncompress the bz2 file on the fly and then bzip it back to a much smaller file. It took about 10 to 12 mins to preprocess in bash, however, it only took about 1000 seconds to read the data to setup the database file without preprocessing. (the fread spends 300 seconds compared to 1000 seconds without preprocessing) Thus, the improvement may not be significant for the read data process. However, after preprocessing, the database file would be much smaller in the Query process, so it might be faster afterward. From this perspective, this is a worthwile try.
+<<eval=FALSE>>=
+a=dbListFields(db,"year")
+position<-match(c("UniqueCarrier","Origin","Dest","Month","DayOfWeek","CRSDepTime","DepDelay"),a)
+write(position,"position.txt",sep=",")
+@
+<<engine="bash",eval=FALSE>>=
+position=$(sed 's/ /,/g' position.txt | sed 'N;s/\n/,/' | s\
+ed 'N;s/\n/,/')
+
+time $(for year in {1987..2008}; 
+       do bunzip2 -c ${year}.csv.bz2 | 
+         cut -d',' -f$position | bzip2 > pre${year}.csv.bz2; done)
+
+# real  9m45.774s
+# user	12m2.676s
+# sys	0m25.852s
+
+drv<-dbDriver("SQLite")
+db1<-dbConnect(drv,dbname="pre_data.db")
+dbListTables(db1)
+year_vec=seq(1987,2008)
+system.time(
+  for (i in year_vec){
+    bzname=paste("bunzip2 -c ","pre",toString(i),".csv.bz2",sep="")
+    datacsv<-fread(bzname,header=TRUE)
+    dbWriteTable(conn=db,value=datacsv,name="year",row.names=FALSE,append=TRUE)
+    rm(datacsv)
+    print(i)
+  }
+)
+
+## Result of Fread for preprocessed bzfiles:
+#    user  system elapsed 
+# 283.688  12.436 299.684 
+@
+\end{document}
