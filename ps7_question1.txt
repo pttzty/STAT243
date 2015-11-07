@@ -1,0 +1,29 @@
+1	What are the goals of their simulation study and what are the metrics that they consider in assessing their method? 
+
+The goal of their simulation study is to assess the accuracy of the asymptotic approximation in finite samples and to examine the power of the EM-test.
+The metrics they consider to use are looking at the power of EM-test (type II error) and the significance level (type I error) to assess the effectiveness of their method.
+
+2	What choices did the authors have to make in designing their simulation study? What are the key aspects of the data generating mechanism that likely aspect the statistical power of the test? 
+
+The choices that authors did included the choosing of sample sizes. The authors chose two sample sizes, which were 200 and 400. Also 5% and 1% significance level were chosen, and the number of repetitions were also included in the design of the simulation study.
+The key aspects of data generating mechanism that impact the statistical power of the test includes the sample size of the data, and the randomness of the generation process. As the sample size increases, the power will tend to increase.
+
+3	Suggest some alternatives to how the authors designed their study. Are there data-generating scenarios that they did not consider that would be useful to consider? 
+
+	 	A possible alternative would be, instead of setting Ha: m>2, we can set H0: m=2 vs Ha: m=3.
+	 	
+4 Give some thoughts on how to set up a simulation study for their problem that uses principles of basic experimental design (see the Unit 10 notes) or if you think it would be difficult, say why. 
+
+	For the set up of the experimental design, when we choose the inputs, such as parameters, sample sizes, and data generating mechanisms, we want to categorize them into small number of levels, so that we do not have too many level of treatments. Besides, another thing need to mention is to focus on the decomposition of sum squares.
+
+4	Do their figures/tables do a good job of presenting the simulation results and do you have any alternative suggestions for how to do this? Do the authors address the issue of simulation uncertainty/simulation standard errors and/or do they convince the reader they've done enough simulation replications? 
+
+Regardless of the functionality that generally presenting the study results, there are still aspects that this paper can improve in its tabulation and figures. First of all, the authors did not provide the detailed data of type I error results in the text of section 4, thus the box-plot should at least show the means and standard deviations of type I errors, perhaps histograms would be another good choice. 
+Additionally, the author did not provide sufficient information about the simulation uncertainty and standard errors because there are 12 models, and the authors only provided one type I error for each model with many replications. More reasonably, I think that the authors should box-plot the standard errors and the means for each of 12 models instead of comparing 12 models.
+
+5	Interpret their tables on power (Tables 4 and 6) - do the results make sense in terms of how the power varies as a function of the data generating mechanism? 
+
+The results on power in Tables 4 and 6 are consistent with the data generating mechanism. First of all, the powers have been increasing significantly compared from sample size 200 to 400. 
+Secondly, as the elements within weight vectors and standard deviation vectors spread more, the power will be larger. This is consistent to the fact stated before that with the same weight vectors and standard deviation vectors, rejecting null hypothesis becomes difficult. Also, when order goes up, rejecting the null hypothesis becomes difficult.
+
+6	Discuss the extent to which they follow JASA's guidelines on simulation studies (see the end of the Unit 10 class notes for the JASA guidelines). The most serious problem of this simulation study is about the reproducibility. Since the authors failed to provide descriptions of pseudo-code and the numerical algorithms of the simulation, so that other researchers are not able to replicate the experiment to do further research.
