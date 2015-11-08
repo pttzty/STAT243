@@ -1,0 +1,144 @@
+\documentclass{article}
+\usepackage{geometry}
+\usepackage{url}
+\usepackage{amsmath}
+\usepackage[T1]{fontenc}
+\usepackage[latin9]{inputenc}
+\geometry{verbose,tmargin=1in,bmargin=1in,lmargin=1in,rmargin=1in}
+<<setup, include=FALSE>>=
+library(knitr) # need this for opts_chunk command
+library(pryr)
+library(fields)
+library(rbenchmark)
+opts_chunk$set(fig.width = 5, fig.height = 5)
+
+@ 
+\begin{document}
+\title{STAT243 Problem set 7}
+\author{Tianyi Zhang}
+\maketitle
+\section*{Problem 2}
+\subsection*{2A}
+Referring the the lecture notes in Unit7, the steps calculating each step are listed below:\\
+Step 1: $U_{11}=\sqrt{A_{11}}$, 0 step.\\
+Step 2: $j=2...n, U_{1j}=A_{1j}/U_{11}$, $n-1$ steps of divison.\\
+Step 3:\\
+Part 1:$i=2...n, U_{ii}=\sqrt{A_{ii}-\Sigma_{k=1}^{i-1}U^{2}_{ki}}$, $1+...+n-1=\frac{n(n-1)}{2} steps$.\\
+Part 2: $j=i+1,...,n. U_{ij}=\frac{A_{ij}-\Sigma_{k=1}^{i-1}U_{ki}U_{kj}}{U_{ii}}$, for each $ij$ combination, ther are $i-1+1=i$ steps. For each $i$, there are $n-i$ number of $j$s.
+Thus There are $\Sigma_{i=2}^{n}i(n-i)=\frac{1}{6}n(n+1)(n-1)-(n-1)$ steps.\\
+Therefore, there are\\
+$Total=\frac{1}{6}n(n+1)(n-1)+\frac{n(n-1)}{2}=$\textbf{$\frac{n^3}{6}+\frac{n^2}{2}-\frac{2n}{3}$}.\\
+\subsection*{2B}
+In fact, we \textbf{can} "overwrite" the orginal matrix by the new upper triangular matrix U as time goes along, which means we do not keep another copy of the original in the storage.\\
+The reason is straight forward. For any computation to get the $U_{ij}$, I do not need any information of the entry $A_{mk}$ where $m<i and k<j$.\\
+For instance, by looking at the step 2 and 3 in the lecture notes, if we needs to compute the entry $U_{23}$ in the new upper triangular matrix, I only need like $A_{23}, A_{24}...$, but not $A_{11},A_{12}...$. From this perspective, all entires sit left above the current entry could be already subsitituted to the entry of the new matrix, which saves memory.
+\subsection*{2C}
+In this problem, we need first to use the implications in 5A, which states that for every X with $n*p$,$XX^T$ is a positive definite matrix. After creating the positive definite matrix with the function with a input of n, I use the built-in function gc to record the peak memory use in the running of chol function. Note that here I cannot simply use the subtraction of memused function becauses I repalce my object with a new object with final size the same, so the absoulte memory difference will be zero.However, because we assume the "sequential overwrite" in part b, so we are interested in the peak of memory use.\\
+Surprisingly, the result does not match my answer in part b. By the difference of max mem use, we observed that the function still had a max memory use for a about the same size as the original matrix. Explicitly, it still creates another copy to save the original matrix while creating the new matrix, and replace that at the end, which might not be smart enough.\\
+From the plots of peak of memory use and time spent for chol function, I find that the max memory use of the chol has a \textbf{qudratic relationship} with n, and the time spent has a \textbf{cubic relationship} with n. The result is consistent to the conclusion in part A, where the complexity of the Cholesky decomposition is $O(n^3)$.
+<<eval=FALSE>>=
+posdef<-function(n){
+A=matrix(rnorm(2*n*n),nc=n)
+M<-cor(A)
+return(M)
+}
+
+mem_time<-function(n){
+  C<-posdef(n)
+  mem1<-sum(gc(reset=TRUE)[,6])
+  time<-system.time(C<-chol(C))
+  mem2<-sum(gc()[,6])
+  result<-c(mem2-mem1,time[3])
+  names(result)<-c("max mem use (Mb)","time spent")
+  return(result)
+}
+
+run_list<-seq(from=500,to=4000,by=500)
+result<-lapply(run_list,mem_time)
+result<-do.call(rbind,result)
+result<-cbind(run_list,result)
+colnames(result)<-c("n","max mem use (Mb)","time spent")
+scatter.smooth(result[,1],result[,2],ylab="max mem use (Mb)",xlab="n")
+scatter.smooth(result[,1],result[,3],ylab="time elapsed",xlab="n")
+@
+\section*{Problem 3}
+\subsection*{3A and B}
+\textbf{I have used MAC Air 1.7GHZ I5 in this problem, and different machines will carry out different speed}.\\
+For this problem, we are comparing three different ways to calculate $b=X^{-1}U$. For n=5000,the full version takes about 300 seconds, and the second method (LU decomposition) elapses about 45 seconds, and the way using chol decomposition yields about 20 seconds for two steps. Approximately, the full version invovles $O(n^3)$ calculation, LU decomposition involves $O(\frac{n^3}{3})$ and the chol decomposition involves $O(\frac{n^3}{6})$ calculations. However, the chol method only spends approximately a half of the time of the LU decomposition.\\
+These results are consistent with the relative order introduced in class, the chol spends approximately half time as the LU decompostion.\\
+As for the precision of three different results, I pick up one element from each result and set the digits to be 22. I found that the first two methods (full version and the LU decomposition) both gives about 12 or 13 digits of accurarcy (They are the same in the first 12 or 13 digits). However, the Cholesky decomposition result becomes different with the first two at the 7th digit, so it only has 6 digits of precision.\\
+We can relate this to the condition number, because condition number represents the loss of accuracy in digits (compared to 16 digits accuracy of machine precision). We can conclude that the condition number for the full version and the LU decomposition are $10^3$.
+<<eval=FALSE>>=
+X=posdef(5000)
+y=rnorm(5000)
+system.time(b1<-solve(X)%*%y)
+
+#                      user                    system                   elapsed 
+# 340.466999999999984538590   2.679999999999999715783 345.775000000000090949470 
+##b
+system.time(b2<-solve(X,y))
+## Chol Decomposition
+system.time(U<-chol(X))
+#                      user                    system                   elapsed 
+# 29.1409999999999627107172  0.1779999999999990478727 29.3930000000000291038305
+system.time(b3<-backsolve(U, backsolve(U, y, transpose = TRUE)))
+#                        user                      system                     elapsed 
+# 0.0660000000000309228198603 0.0009999999999994457766661 0.0670000000000072759576142 
+rm(U)
+options(digits=22)
+b1[1]
+b2[1]
+b3[1]
+rm(U)
+rm(b1,b2,b3)
+rm(X)
+rm(y)
+@
+\section*{Problem 4}
+The general framework of the way here I did was essentially utilizing the fact that $\Sigma$ is a covariance matrix (positive definite and symmetric). Thus, I am able to use the cholesky decompostion to deal with inverses, and aviod using solve, because cholesky function with backsolve spends about half time compared to the function solve(X,y).
+<<eval=FALSE>>=
+x<-matrix(rnorm(1000*100),nrow=1000)
+sigma<-posdef(1000)
+y<-rnorm(1000)
+glsnew<-function(x,sigma,y){
+  U1<-chol(sigma)
+  p1<-backsolve(U1, backsolve(U1, x, transpose = TRUE))
+  p2<-t(x)%*%p1
+  U2<-chol(p2)
+  p3<-backsolve(U2, backsolve(U2, t(x), transpose = TRUE))
+  p4<-backsolve(U1, backsolve(U1, y, transpose = TRUE))
+  beta<-p3%*%p4
+  return(beta)
+}
+gls2<-function(x,sigma,y){
+  U1<-chol(sigma)
+  p1<-backsolve(U1, backsolve(U1, x, transpose = TRUE))
+  p2<-t(x)%*%p1
+  U2<-chol(p2)
+  last<-t(p1)%*%y
+  beta<-backsolve(U2, backsolve(U2, last, transpose = TRUE))
+  return(beta)
+}
+
+
+@
+\section*{Problem 5}
+\subsection*{5A}
+By definition, if $\vec{v}$ is the right singular vector of $X$, and $\vec{u}$ is the left singular vector, then:\\
+$X\vec{v}=\sigma \vec{u}$ and $X^T\vec{u}=\sigma \vec{v}$.
+\begin{align*}
+X^TX\vec{v}=X^T\sigma \vec{u}, \sigma scalar.\\
+X^TX\vec{v}=\sigma X^T\vec{u}\\
+X^TX\vec{v}=\sigma \sigma \vec{v}=\sigma ^2 \vec{v}
+\end{align*}
+Thus $\vec{v}$ is an eigenvector of $X^TX$, and $\sigma ^2$ is the eigenvalue.\\
+Additionally, we can also show that $X^TX$ is positive semi definite, because it has eigenvalues that can be expressed as $\sigma ^2>=0$. Detaily:\\
+$M=X^TX$ is positive semi definite i f $Z^TMZ>=0$ for every non-zero Z.\\
+$Z^TMZ=Z^TX^TXZ=||XZ||_{2}^{2}>=0$, thus $X^TX$ is positive semi definite.
+\subsection*{5B}
+If $X\vec{v}=\lambda \vec{v}$, then $\lambda$ is the eigenvalue of $X$.\\
+\begin{equation*}
+(X+cI)\vec{v}=X\vec{v}+cI\vec{v}=\lambda \vec{v}+c\vec{v}=(\lambda+c)\vec{v}
+\end{equation*}
+Therefore, $\lambda+c$ is always the eigenvalue of $X+cI$. Since we have at most n distinct eigenvalues, then the calculation is in $O(n)$, actually, exactly n.
+\end{document}
