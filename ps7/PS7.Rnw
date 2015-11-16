@@ -10,7 +10,7 @@ library(knitr) # need this for opts_chunk command
 library(pryr)
 library(fields)
 library(rbenchmark)
-opts_chunk$set(fig.width = 5, fig.height = 5)
+opts_chunk$set(fig.width = 4, fig.height = 4)
 
 @ 
 \begin{document}
