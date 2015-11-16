@@ -141,8 +141,8 @@ The third step is: Do the Cholesky decomposition for $X^T\Sigma^{-1}X$, which is
 Consider n is to thousands, and p is to hunderds, we may neglect some terms, the overall order is $O(n^3)$ (majorly I think it's $O(\frac{n^3}{6}+2n^2p)$.
 The more concise algorithm are listed below:\\
 \begin{align*}
-U_1U_1^T=A\ (U_1\ is\ an\ upper\ triangular\ matrix)\\
-P_1=\Sigma^{-1}X=U_1^{-1}(U_1^{T-1}X)\\
+U_1U_1^T=A\ (U_1\ is\ an\ upper\ triangular\ matrix)\ Cholesky\ Decomposition\ Complexity:\ O(\frac{n^3}{6})\\
+P_1=\Sigma^{-1}X=U_1^{-1}(U_1^{T-1}X)\ \ Complexity:\ (O(2n^2p))\\
 P_2=X^TP_1\\
 U_2U_2^T=P_2\ (U_2\ is\ upper\ triangular)\\
 Result=U_2^{-1}(U_2^{T-1}P_1^Ty)\ Notice\ that\ P_1^T\ is\ X^T\Sigma^{-1}
