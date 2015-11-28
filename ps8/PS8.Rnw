@@ -1,0 +1,176 @@
+\documentclass{article}
+\usepackage{geometry}
+\usepackage{url}
+\usepackage{amsmath}
+\usepackage[T1]{fontenc}
+\usepackage[latin9]{inputenc}
+\geometry{verbose,tmargin=1in,bmargin=1in,lmargin=1in,rmargin=1in}
+<<setup, include=FALSE>>=
+library(knitr) # need this for opts_chunk command
+library(pryr)
+library(fields)
+library(rbenchmark)
+opts_chunk$set(fig.width = 4, fig.height = 4)
+
+@ 
+\begin{document}
+\title{STAT243 Problem set 8}
+\author{Tianyi Zhang}
+\maketitle
+\section*{Problem 1}
+\subsection*{1A}
+For the purpose of this study, we test the robustness of these two regression methods. A robust method should perform consistently and better with different level of outliers in the sample dataset, and also for various levels of sample sizes.\\
+First, we construct $m$ number of levels of "outliers" datasets with the n levels of different sample sizes. For instance, we could set m=10, and test the datasets with percentage of outliers from 1 to 10. There should be a loop involved, with one loop is from 1 to m, and another loop inside the first loop is indexing from 1 to n.\\
+Secondly, to assess the absolute prediction error. We can calculate the expectation and the standard error for $E|\hat{Y}-Y|$, and test the difference between two models. As for the coverage of prediction interval, 
+\subsection*{1B}
+The crucial step for the generation of the simulated dataset is about the generation of certain percentage of outliers.
+\section*{Problem 2}
+\subsection*{2A}
+To compare the speed of the decay of the tail for these two distributions, we evaluate the tail function for pareto and exponential distribution: $P(X>x)$.\\
+First we have to make sure that two distributions have the same scale parameters, and we know the scale parameter for pareto is $\alpha$ and the inverse scale parameter for exponential distribution is $\lambda$.\\
+Thus, $\lambda=\alpha^{-1}$.\textbf{Actually we do not need the same scale assumption to evalute the speed of decay, though this is what I apply here}\\
+For the pareto distribution, when $x>\alpha$, $P(X>x)=(\frac{\alpha}{x})^\beta$.\\
+For the exponential distribution, $P(X>x)=\frac{1}{\alpha}e^{\frac{-1}{\alpha}x}$
+\begin{align*}
+\lim_{x\rightarrow \infty}\frac{P_{pareto}(X>x)}{P_{exp}(X>x)}=\frac{(\frac{\alpha}{x})^\beta}{\frac{1}{\alpha}e^{\frac{-1}{\alpha}x}}\\
+\lim_{x\rightarrow \infty}\frac{P_{pareto}(X>x)}{P_{exp}(X>x)}=\frac{\alpha ^{\beta+1} e^{x/\alpha}}{x^\beta}\\
+By\ l'hopital's\ rule:\ \lim_{x\rightarrow \infty}\frac{P_{pareto}(X>x)}{P_{exp}(X>x)}=\infty \\
+\end{align*}
+Thus we conclude that \textbf{the Pareto decays slower than the expontential distribution}.
+\subsection*{2B}
+Here I wrote a function called estimation, where it computes $f(x),g(x),h(x)$, and estimates $E(X),E(X^2)$ respectively. Particularlly, I set an option to detect if the user wants a pareto sample density or an exponential sample density so that I do not need to write another function in part 2C. From the histogram, there are not extreme weights in this setting, and the first two moments are close to the theoretical values 3 and 10. Notice that here I use the package VGAM to simulate the data in the pareto distribution.
+<<>>=
+## Create a sample from a Pareto distribution, alpha is the scale in this case
+library(VGAM)
+
+Estimation<-function(n,alpha,beta,Paretosample=TRUE){
+  if(Paretosample==TRUE){
+    sample=rpareto(n,scale=alpha,shape=beta)
+   ## Move two units
+    fx=dexp(sample-2,rate=1)
+    gx=dpareto(sample,scale=alpha,shape=beta)
+  }
+  else{
+      sample=rexp(n,rate=1)+2
+      fx=dpareto(sample,scale=alpha,shape=beta)
+      gx=dexp(sample-2,rate=1)
+  }
+  wgts<-fx/gx
+  single_emu1<-sample*fx/gx
+  single_emu2<-sample*single_emu1
+  emu1<-sum(single_emu1)/n
+  emu2<-sum(single_emu2)/n
+  plotdata<-cbind(wgts,single_emu1,single_emu2)
+  return(list(emu1,emu2,plotdata)) 
+}  
+
+data<-Estimation(10000,alpha=2,beta=3,Paretosample=TRUE)
+### EX
+data[[1]]
+### EX^2
+data[[2]]
+## histogram the weights 
+## weights
+hist(data[[3]][,"wgts"],main="weights",xlab="weight value")
+## E(X) hf/g
+hist(data[[3]][,"single_emu1"],main="First Moment",xlab="h(x)f(x)/g(x),h(x)=x")
+hist(data[[3]][,"single_emu1"],main="Second Moment",xlab="h(x)f(x)/g(x),h(x)=x^2")
+@
+\subsection*{2C}
+Here in 2C, instead of using a pareto distribution as the sample density, I use the exponential distribution as the sample density. However, in this case, there are several extreme values of weights and $h(x)f(x)/g(x)$ that significantly affect the standard error of the prediction, since $Var(predictor)\propto Var(h(x)f(x)/g(x))$, and this is shown in the histogram. \textbf{The variance of the predictors are significantly larger than the method in part B}
+<<>>=
+data2<-Estimation(10000,alpha=2,beta=3,Paretosample=FALSE)
+data2[[1]]
+### EX^2
+data2[[2]]
+## histogram the weights 
+## weights
+hist(data2[[3]][,"wgts"],main="weights",xlab="weight value")
+## E(X) hf/g
+hist(data2[[3]][,"single_emu1"],main="First Moment",xlab="h(x)f(x)/g(x),h(x)=x")
+hist(data2[[3]][,"single_emu1"],main="Second Moment",xlab="h(x)f(x)/g(x),h(x)=x^2")
+summary(data2[[3]][,"wgts"])
+@
+\section*{Problem 3}
+\subsection*{3A}
+For this EM algorithm, we are maximizing the function $Q(\beta|\beta ^{(t)})$, which is the conditional expectation of the log likelihood function given $Y,X,\beta ^{(t)}$.\\
+We know the Likelihood function, by iid property the law of conditional probability:\\
+$L(\beta ;Y,Z)=P(Y,Z|\beta)=\Pi p(Z_i,Y_i|\beta)=\Pi p(Z_i|\beta)p(Y_i|Z_i,\beta)$\\
+We know that: $p(Y_i|Z_i,\beta)=I(Z_i>0)^{Y_i}I(Z_i<=0)^{1-Y_i}=1$\\
+We take the log of the likelihood function to get the loglihood function:\\
+\begin{align*}
+loglihood(\beta |Y,Z)=\sum( (log p(Y_i|Z_i,\beta) + log P(Z_i|\beta)))\\
+=\sum (-\frac{1}{2}log(2\pi)-\frac{1}{2}(Z_i-X_i^T\beta)^2)\\
+Q(\beta |\beta ^{(t)})=E[loglihood(\beta |Y,Z)|Y,X,\beta ^{(t)}]=\sum _i E[-\frac{1}{2}log(2\pi)-\frac{1}{2}(Z_i-X_i^T\beta)^2|Y,X,\beta ^{(t)}]\\
+=\sum -\frac{1}{2}log(2\pi)-\frac{1}{2}(E[Z_i^2|Y,X,\beta ^{(t)}-2X_i^T\beta E[Z_i|Y,X,\beta ^{(t)}]+(X_i^T\beta)^2)
+\end{align*}
+Unsuprisingly, the problem has been transformed to another ordinary regression problem of new quantities:\\
+Maximizing $Q(\beta |\beta ^{(t)})$ is equivalent to minimizing $\sum _{i}-2X_i^T\beta E[Z_i|Y,X,\beta ^{(t)}]+(X_i^T\beta)^2)$ over $\beta$\\
+Thus, from the equation of ordinary least squares regression:\\
+\textbf{$\hat \beta ^{(t+1)}=(X^TX^{-1}X^TE[Z|Y,X,\beta ^{(t)}])$}\\
+Where the equation of $E[Z|Y,X,\beta _t]$ is given in the hints section, when $Y_i=1,Z_i>0,E=X_i^T\beta ^{(t)}+\frac{\phi(X_i^T\beta ^{(t)})}{\Phi(X_i^T\beta ^{(t)})}$
+\subsection*{3B}
+As discussed in class, the starting value of the estimator could be the estimator where we ignore the latent variables $Z$, such that:\\
+$\beta ^{(0)}=(X^TX)^{-1}XY$
+\subsection*{3C}
+First we have to simulate the dataset with sample size of 100, with dimension of the beta vector equals to 3, and there is also an intercept $\beta _0$. The true $\beta _0$ and $\beta _1$ I set is 1 and 5, where $\beta _0$ denotes the intercept.
+<<>>=
+library(Rlab)
+n=100
+beta=c(2,4,0,0)
+X=cbind(rep(1,n),matrix(rnorm(n*(length(beta)-1)),ncol=length(beta)-1))
+## Probability Y=1 (cumulative probabiity function)
+py1<-pnorm(X %*% beta)
+Y<-sapply(py1,function(x){return(rbern(1,x))})
+
+## expressing that expectation
+eachstep<-function(X,Y,beta){
+  Xbeta<-X %*% beta 
+  Expectation=rep(0,length(Y))
+  for(i in 1:length(Y)){
+    Expectation[i]<-ifelse(Y[i]==1,Xbeta[i]+dnorm(Xbeta[i])/pnorm(Xbeta[i]),Xbeta[i]-dnorm(Xbeta[i])/pnorm(-Xbeta[i]))
+  }
+  ord_reg<-lm(Expectation~X[,2:4])$coefficients
+  return(ord_reg)
+}
+
+probit_new<-function(X,Y,error=1e-06,term_cond=1000){
+  beta_old<-lm(Y~X[,2:4])$coefficients
+  beta_new<-eachstep(X,Y,beta_old)
+  num_itr<-1
+  while(max(abs(beta_new-beta_old))>error & num_itr<term_cond){
+    beta_old<-beta_new
+    beta_new<-eachstep(X,Y,beta)
+    num_itr<-num_itr+1
+  }
+  names(beta_new)<-c("beta0","beta1","beta2","beta3")
+  return(beta_new)
+}
+probit_new(X,Y)
+@
+\section*{Problem 4}
+In this problem, we are trying to explore whether it is possible to have multiple local minimums for the helical valley function. First I plot the contour of this function to look at how it behaves, and I fix x3 to be the constant, and let x1 and x2 vary from zero to one. I refer to the function f in the lecture notes 11, and use the optim() to plot the local minimums. I choose the initial point to be the (0.5,0.5,0.5), and it's shown that there are multiple local minima.
+<<>>=
+theta <- function(x1,x2) atan2(x2, x1)/(2*pi)
+
+f <- function(x, plot=TRUE) {
+  if(plot && cnt < 10) {
+    points(x[1], x[2], pch = as.character(cnt))
+    if(cnt < 10) cnt <<- cnt + 1 else cnt <<- 1
+  } else if(plot) points(x[1], x[2])
+  f1 <- 10*(x[3] - 10*theta(x[1],x[2]))
+  f2 <- 10*(sqrt(x[1]^2+x[2]^2)-1)
+  f3 <- x[3]
+  return(f1^2+f2^2+f3^2)
+}
+
+## First fix X3.
+library("fields")
+x1s <- seq(0, 1, len = 100); x2s = seq(0, 1, len = 100)
+fx <- apply(expand.grid(x1s, x2s,0.5), 1, f, FALSE)
+cnt <- 1
+image.plot(x1s, x2s, matrix(log(fx), 100, 100))
+init <- c(0.5,0.5,0.5)
+optim(init, f, method = "Nelder-Mead")
+@
+\end{document}
