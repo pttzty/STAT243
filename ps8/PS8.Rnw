@@ -10,7 +10,7 @@ library(knitr) # need this for opts_chunk command
 library(pryr)
 library(fields)
 library(rbenchmark)
-opts_chunk$set(fig.width = 4, fig.height = 4)
+opts_chunk$set(fig.width = 6, fig.height = 4)
 
 @ 
 \begin{document}
@@ -19,11 +19,12 @@ opts_chunk$set(fig.width = 4, fig.height = 4)
 \maketitle
 \section*{Problem 1}
 \subsection*{1A}
+Notice that in this problem part of the explanantion for Part B is in Part A.
 For the purpose of this study, we test the robustness of these two regression methods. A robust method should perform consistently and better with different level of outliers in the sample dataset, and also for various levels of sample sizes.\\
 First, we construct $m$ number of levels of "outliers" datasets with the n levels of different sample sizes. For instance, we could set m=10, and test the datasets with percentage of outliers from 1 to 10. There should be a loop involved, with one loop is from 1 to m, and another loop inside the first loop is indexing from 1 to n.\\
-Secondly, to assess the absolute prediction error. We can calculate the expectation and the standard error for $E|\hat{Y}-Y|$, and test the difference between two models. As for the coverage of prediction interval, 
+Secondly, to assess the absolute prediction error. For each particular sample size, we can calculate the sample estimation of the absolute error $\frac{1}{m}\sum_{i=1}^{m}|\hat{Y_i}-Y_i|$ and the squared error $\frac{1}{m}\sum_{i=1}^{m}|\hat{Y_i}-Y_i|^2$, for the coverage of prediction interval, we calculate $\frac{1}{m}\sum_{i=1}^{m}(Number\ of\ new\ observations\ fall\ into\ C_i)$, where $C_i$ is the prediction interval given by the bootstrap calculations. Then we average these measurements over all possible sample sizes. Notice that for the bootstrap step to create prediction interval, we need inputs like the level of prediction interval (like 95 percentage coverage), and a resampling method.
 \subsection*{1B}
-The crucial step for the generation of the simulated dataset is about the generation of certain percentage of outliers.
+The crucial step for the generation of the simulated dataset is about the generation of certain percentage of outliers. It's hard to control the exact proportion of outliers, thus here by the wikipedia of outliers, outliers can occur in any heavy-tailed distribution or it's actually from another distribution (mixture model). I consider generating outliers from a Gaussian mixture model, and when the outlier level is $m$, the sample density $P(Y|X)$ comes from:the "main density": $N(X_i^T\theta ^{(1)},\sigma _1 ^2)$ and the outlier distribution $N(X_i\theta ^{(2)},\sigma _2 ^2)$. We can change the probability that the sample draws from the outlier distribution to control the different outliers level from 1 to m.
 \section*{Problem 2}
 \subsection*{2A}
 To compare the speed of the decay of the tail for these two distributions, we evaluate the tail function for pareto and exponential distribution: $P(X>x)$.\\
@@ -133,14 +134,16 @@ eachstep<-function(X,Y,beta){
   ord_reg<-lm(Expectation~X[,2:4])$coefficients
   return(ord_reg)
 }
-
+@
+Here I write the major function for this probit model, where I set the criteria to stop the iteration process where the iteration stops at either the max absoulte error is less than $10^{-6}$ or the number of iterations has reached 1000.
+<<>>=
 probit_new<-function(X,Y,error=1e-06,term_cond=1000){
   beta_old<-lm(Y~X[,2:4])$coefficients
   beta_new<-eachstep(X,Y,beta_old)
   num_itr<-1
   while(max(abs(beta_new-beta_old))>error & num_itr<term_cond){
     beta_old<-beta_new
-    beta_new<-eachstep(X,Y,beta)
+    beta_new<-eachstep(X,Y,beta_old)
     num_itr<-num_itr+1
   }
   names(beta_new)<-c("beta0","beta1","beta2","beta3")
@@ -148,29 +151,75 @@ probit_new<-function(X,Y,error=1e-06,term_cond=1000){
 }
 probit_new(X,Y)
 @
-\section*{Problem 4}
-In this problem, we are trying to explore whether it is possible to have multiple local minimums for the helical valley function. First I plot the contour of this function to look at how it behaves, and I fix x3 to be the constant, and let x1 and x2 vary from zero to one. I refer to the function f in the lecture notes 11, and use the optim() to plot the local minimums. I choose the initial point to be the (0.5,0.5,0.5), and it's shown that there are multiple local minima.
+\subsection*{3D}
+$Y_i$ follows a Bernoulli distribution with $Ber(\Phi(X_i^T\beta))$, thus:
+\begin{equation*}
+p(Y|X,\beta)=\prod _{i}\Phi(X_i^T\beta)^{Y_i}(1-\Phi(X_i^T\beta))^{1-Y_i}
+\end{equation*}
+Thus, the loglihood function is:
+\begin{equation*}
+l(\beta|Y,X)=\sum _{i} [Y_{i}\log(\Phi(X_i^T\beta))+(1-Y_i)\log(1-\Phi(X_i^T\beta))]
+\end{equation*}
 <<>>=
+# ## Recall beta=c(2,5,0,0)
+# loglihood<-function(beta_est){
+#   Xbeta<-X%*%beta_est
+#   logli<-sum(Y*log(pnorm(Xbeta))+(1-Y)*(1-log(pnorm(Xbeta))))
+#   return(logli)
+# }
+# beta_0<-lm(Y~X[,2:4])$coefficients
+# # optim(par=beta_0,loglihood,method="BFGS",control=list(fnscale=-1),hessian=FALSE)
+# # optim(beta_0,loglihood,control=list(fnscale=-1))
+
+loglihood<-function(beta_est){
+  Xbeta<-X%*%beta_est
+  Expectation=rep(0,length(Y))
+  for(i in 1:length(Y)){
+    Expectation[i]<-ifelse(Y[i]==1,Xbeta[i]+dnorm(Xbeta[i])/pnorm(Xbeta[i]),Xbeta[i]-dnorm(Xbeta[i])/pnorm(-Xbeta[i]))
+  }
+  square_e<-sum((Expectation-Xbeta)^2)
+  return(square_e)
+}
+beta_0<-lm(Y~X[,2:4])$coefficients
+optim(par=beta_0,loglihood,method="BFGS")
+@
+\section*{Problem 4}
+In this problem, I first try to plot silces to see the behaviors of the function $f$, where I fix the value of $x_1,x_2,x_3$ respectively, and gave each of the input value from -1 to 1. As it's shown on the plot, it seems that the choice $(1,0,0)$ gives the smallest value. Besides, as shown on the graph, many plots are symmetric or half symmetric, thus multiple local minimums are possible by direct inspection, however it's not the case by further inspection.
+<<>>=
+## Another
+library("fields")
 theta <- function(x1,x2) atan2(x2, x1)/(2*pi)
 
-f <- function(x, plot=TRUE) {
-  if(plot && cnt < 10) {
-    points(x[1], x[2], pch = as.character(cnt))
-    if(cnt < 10) cnt <<- cnt + 1 else cnt <<- 1
-  } else if(plot) points(x[1], x[2])
+f <- function(x) {
   f1 <- 10*(x[3] - 10*theta(x[1],x[2]))
   f2 <- 10*(sqrt(x[1]^2+x[2]^2)-1)
   f3 <- x[3]
   return(f1^2+f2^2+f3^2)
 }
-
-## First fix X3.
-library("fields")
-x1s <- seq(0, 1, len = 100); x2s = seq(0, 1, len = 100)
-fx <- apply(expand.grid(x1s, x2s,0.5), 1, f, FALSE)
-cnt <- 1
-image.plot(x1s, x2s, matrix(log(fx), 100, 100))
-init <- c(0.5,0.5,0.5)
-optim(init, f, method = "Nelder-Mead")
+x1s <- seq(-2, 2, len = 100); x2s = seq(-2, 2, len = 100); x3s =seq(-2,2,len=100)
+## Fixing one input and change others
+par(mfrow=c(1,3))
+for (i in c(-1,0,1)){
+  ## Fix x1
+  fx1=apply(expand.grid(x2s, x3s), 1,function(x){return(f(c(i,x)))})
+  image.plot(x2s, x3s, matrix(log(fx1),100,100), main=c("x1=",i))
+  ## Fix x2
+  fx2=apply(expand.grid(x1s, x3s), 1,function(x){return(f(c(x[1],i,x[2])))})
+  image.plot(x1s, x3s, matrix(log(fx2),100,100), main=c("x2=",i))
+  ## Fix x3
+  fx3=apply(expand.grid(x1s, x2s), 1,function(x){return(f(c(x,i)))})
+  image.plot(x1s, x2s, matrix(log(fx3),100,100), main=c("x3=",i))
+}
+@
+Here I explore the global minimum of the function f, and as it's shown on the previous plots, the possible global minimum is close to $(1,0,0)$. Thus we would like to start from $(0,0,0),(10,10,10),(-10,-10,-10)$ and search for the global minimum using a variety of optimization methods in optimx, but here I just use the Nelder-Mead method in optim to illustrate. The convergence zero shows that the optimization has been completed succesfully, and it's clear that whatever the starting point is, the local minmimum returned is $x=(1,0,0)$, thus there are no mutiple local minimums.\\
+Besides, it is super obvious that $x=(1,0,0)$ reaches the global minimum, because the f returns the result with the nonnegative value $f_1^2+f_2^2+f_3^2$ and $f(1,0,0)=0$.
+<<>>=
+init1 <- c(0,0,0)
+optim(init1, f, method = "Nelder-Mead")
+init2<- c(10,10,10)
+optim(init2, f, method = "Nelder-Mead")
+init3<-c(-10,-10,-10)
+optim(init3, f, method = "Nelder-Mead")
+f(c(1,0,0))
 @
 \end{document}
