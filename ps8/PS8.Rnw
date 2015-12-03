@@ -114,11 +114,12 @@ Where the equation of $E[Z|Y,X,\beta _t]$ is given in the hints section, when $Y
 As discussed in class, the starting value of the estimator could be the estimator where we ignore the latent variables $Z$, such that:\\
 $\beta ^{(0)}=(X^TX)^{-1}XY$
 \subsection*{3C}
-First we have to simulate the dataset with sample size of 100, with dimension of the beta vector equals to 3, and there is also an intercept $\beta _0$. The true $\beta _0$ and $\beta _1$ I set is 1 and 5, where $\beta _0$ denotes the intercept.
+First we have to simulate the dataset with sample size of 100, with dimension of the beta vector equals to 3, and there is also an intercept $\beta _0$. The true $\beta _0$ and $\beta _1$ I set is -1 and 2, where $\beta _0$ denotes the intercept.
 <<>>=
 library(Rlab)
+set.seed(0)
 n=100
-beta=c(2,4,0,0)
+beta=c(-1,2,0,0)
 X=cbind(rep(1,n),matrix(rnorm(n*(length(beta)-1)),ncol=length(beta)-1))
 ## Probability Y=1 (cumulative probabiity function)
 py1<-pnorm(X %*% beta)
@@ -135,7 +136,7 @@ eachstep<-function(X,Y,beta){
   return(ord_reg)
 }
 @
-Here I write the major function for this probit model, where I set the criteria to stop the iteration process where the iteration stops at either the max absoulte error is less than $10^{-6}$ or the number of iterations has reached 1000.
+Here I write the major function for this probit model, where I set the criteria to stop the iteration process where the iteration stops at either the max absoulte error is less than $10^{-6}$ or the number of iterations has reached 1000. Finally when I run my program, the number of iterations are about 224 times.
 <<>>=
 probit_new<-function(X,Y,error=1e-06,term_cond=1000){
   beta_old<-lm(Y~X[,2:4])$coefficients
@@ -146,6 +147,7 @@ probit_new<-function(X,Y,error=1e-06,term_cond=1000){
     beta_new<-eachstep(X,Y,beta_old)
     num_itr<-num_itr+1
   }
+  print(c("number of iterations=",num_itr))
   names(beta_new)<-c("beta0","beta1","beta2","beta3")
   return(beta_new)
 }
@@ -160,28 +162,32 @@ Thus, the loglihood function is:
 \begin{equation*}
 l(\beta|Y,X)=\sum _{i} [Y_{i}\log(\Phi(X_i^T\beta))+(1-Y_i)\log(1-\Phi(X_i^T\beta))]
 \end{equation*}
+The result for beta estimation and SE I got was the same if I use the optim or the built in glm option in R. These results are also consistent with the one when I was using the EM Algorithm. The number of iterations are 46 for the BFGS option.
 <<>>=
-# ## Recall beta=c(2,5,0,0)
-# loglihood<-function(beta_est){
-#   Xbeta<-X%*%beta_est
-#   logli<-sum(Y*log(pnorm(Xbeta))+(1-Y)*(1-log(pnorm(Xbeta))))
-#   return(logli)
-# }
-# beta_0<-lm(Y~X[,2:4])$coefficients
-# # optim(par=beta_0,loglihood,method="BFGS",control=list(fnscale=-1),hessian=FALSE)
-# # optim(beta_0,loglihood,control=list(fnscale=-1))
-
-loglihood<-function(beta_est){
-  Xbeta<-X%*%beta_est
-  Expectation=rep(0,length(Y))
-  for(i in 1:length(Y)){
-    Expectation[i]<-ifelse(Y[i]==1,Xbeta[i]+dnorm(Xbeta[i])/pnorm(Xbeta[i]),Xbeta[i]-dnorm(Xbeta[i])/pnorm(-Xbeta[i]))
-  }
-  square_e<-sum((Expectation-Xbeta)^2)
-  return(square_e)
+loglihood<-function(X,Y,inits){
+  Xbeta=X%*%inits
+  logli=sum(Y*log(pnorm(Xbeta))+(1-Y)*(log(1-pnorm(Xbeta))))
+  return(logli)
 }
-beta_0<-lm(Y~X[,2:4])$coefficients
-optim(par=beta_0,loglihood,method="BFGS")
+inits<-lm(Y~X[,2:4])$coefficients
+result<-optim(inits,loglihood,X=X,Y=Y,method="BFGS",control=list(fnscale=-1),hessian=TRUE)
+
+x1=X[,2]
+x2=X[,3]
+x3=X[,4]
+formal_result<-glm(Y~x1+x2+x3,family=binomial(link="probit"))
+## iterations
+result$counts
+
+## Beta
+result$par
+formal_result$coefficients
+
+##SE
+se<-sqrt(-diag(solve(result$hessian)))
+se_formal<-coef(summary(formal_result))[,"Std. Error"]
+se
+se_formal
 @
 \section*{Problem 4}
 In this problem, I first try to plot silces to see the behaviors of the function $f$, where I fix the value of $x_1,x_2,x_3$ respectively, and gave each of the input value from -1 to 1. As it's shown on the plot, it seems that the choice $(1,0,0)$ gives the smallest value. Besides, as shown on the graph, many plots are symmetric or half symmetric, thus multiple local minimums are possible by direct inspection, however it's not the case by further inspection.
